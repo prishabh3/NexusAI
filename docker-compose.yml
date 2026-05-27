@@ -17,6 +17,7 @@ services:
       STORAGE_PATH: /app/data
       LOG_LEVEL: DEBUG
       APP_CORS_ORIGINS: '["http://localhost:3000","http://localhost:8000"]'
+      STORAGE_ALLOWED_EXTENSIONS: '["csv","parquet","json","jsonl"]'
     ports:
       - "8000:8000"
     volumes:
@@ -118,6 +119,7 @@ services:
       OLLAMA_BASE_URL: http://ollama:11434
       STORAGE_PATH: /app/data
       APP_CORS_ORIGINS: '["http://localhost:3000","http://localhost:8000"]'
+      STORAGE_ALLOWED_EXTENSIONS: '["csv","parquet","json","jsonl"]'
     volumes:
       - ./apps/api:/app
       - nexusai-data:/app/data

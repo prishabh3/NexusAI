@@ -1,26 +1,10 @@
 from __future__ import annotations
 
-import json
 from functools import lru_cache
-from typing import Any, Literal
+from typing import Literal
 
-from pydantic import Field, field_validator
-from pydantic.fields import FieldInfo
-from pydantic_settings import BaseSettings, EnvSettingsSource, SettingsConfigDict
-
-
-class _FlexibleEnvSource(EnvSettingsSource):
-    """Accepts both JSON arrays and comma-separated strings for list fields."""
-
-    def prepare_field_value(
-        self, field_name: str, field: FieldInfo, value: Any, value_is_complex: bool
-    ) -> Any:
-        if value_is_complex and isinstance(value, str):
-            stripped = value.strip()
-            if stripped.startswith("[") or stripped.startswith("{"):
-                return json.loads(stripped)
-            return [item.strip() for item in stripped.split(",") if item.strip()]
-        return super().prepare_field_value(field_name, field, value, value_is_complex)
+from pydantic import Field
+from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
 class Settings(BaseSettings):
@@ -30,18 +14,6 @@ class Settings(BaseSettings):
         case_sensitive=False,
         extra="ignore",
     )
-
-    @classmethod
-    def settings_customise_sources(  # type: ignore[override]
-        cls,
-        settings_cls: type[BaseSettings],
-        **kwargs: Any,
-    ) -> tuple[Any, ...]:
-        return (
-            kwargs["init_settings"],
-            _FlexibleEnvSource(settings_cls),
-            kwargs["dotenv_settings"],
-        )
 
     # Application
     app_env: Literal["development", "staging", "production"] = "development"
@@ -68,7 +40,9 @@ class Settings(BaseSettings):
     # Storage
     storage_path: str = "./data"
     storage_max_upload_mb: int = 500
-    storage_allowed_extensions: list[str] = ["csv", "parquet", "json", "jsonl"]
+    storage_allowed_extensions: list[str] = Field(
+        default=["csv", "parquet", "json", "jsonl"]
+    )
 
     # ML
     ml_model_cache_path: str = "./models"
@@ -81,13 +55,6 @@ class Settings(BaseSettings):
     log_level: Literal["DEBUG", "INFO", "WARNING", "ERROR"] = "INFO"
     log_format: Literal["json", "text"] = "json"
     sentry_dsn: str | None = None
-
-    @field_validator("storage_allowed_extensions", mode="before")
-    @classmethod
-    def parse_extensions(cls, v: str | list[str]) -> list[str]:
-        if isinstance(v, str):
-            return [ext.strip().lower() for ext in v.split(",")]
-        return v
 
     @property
     def is_production(self) -> bool:
