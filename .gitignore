@@ -1,0 +1,64 @@
+# Dependencies
+node_modules/
+.pnp
+.pnp.js
+
+# Build outputs
+.next/
+out/
+dist/
+build/
+*.egg-info/
+__pycache__/
+*.pyc
+*.pyo
+.mypy_cache/
+.ruff_cache/
+.pytest_cache/
+
+# Environment
+.env
+.env.local
+.env.*.local
+.env.production
+
+# Turbo
+.turbo/
+
+# Coverage
+coverage/
+.coverage
+htmlcov/
+
+# Data & uploads
+data/uploads/
+data/processed/
+*.parquet
+*.sqlite
+
+# ML artifacts
+models/
+*.joblib
+*.pkl
+*.pt
+*.onnx
+
+# Logs
+logs/
+*.log
+
+# OS
+.DS_Store
+Thumbs.db
+
+# IDE
+.idea/
+.vscode/settings.json
+*.swp
+
+# Docker
+.docker-volumes/
+
+# Temporary
+tmp/
+temp/
