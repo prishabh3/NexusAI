@@ -1,12 +1,11 @@
 """Tests for DuckDB engine — SQL execution, registration, error handling."""
+
 import csv
-import os
-import tempfile
 from pathlib import Path
 
 import pytest
 
-from src.infrastructure.duckdb.engine import DuckDBEngine, DuckDBQueryError
+from src.infrastructure.duckdb.engine import DuckDBEngine
 
 
 @pytest.fixture()
@@ -20,11 +19,13 @@ def sample_csv(tmp_path: Path) -> str:
     with open(path, "w", newline="") as f:
         writer = csv.DictWriter(f, fieldnames=["id", "name", "revenue", "date"])
         writer.writeheader()
-        writer.writerows([
-            {"id": 1, "name": "Alice", "revenue": 100.5, "date": "2024-01-01"},
-            {"id": 2, "name": "Bob", "revenue": 200.0, "date": "2024-01-02"},
-            {"id": 3, "name": "Charlie", "revenue": 150.75, "date": "2024-01-03"},
-        ])
+        writer.writerows(
+            [
+                {"id": 1, "name": "Alice", "revenue": 100.5, "date": "2024-01-01"},
+                {"id": 2, "name": "Bob", "revenue": 200.0, "date": "2024-01-02"},
+                {"id": 3, "name": "Charlie", "revenue": 150.75, "date": "2024-01-03"},
+            ]
+        )
     return str(path)
 
 
@@ -38,7 +39,9 @@ class TestDuckDBEngine:
         assert result.result_preview[0]["cnt"] == 3
 
     @pytest.mark.asyncio
-    async def test_execute_query_returns_execution(self, engine: DuckDBEngine, sample_csv: str) -> None:
+    async def test_execute_query_returns_execution(
+        self, engine: DuckDBEngine, sample_csv: str
+    ) -> None:
         await engine.register_dataset("revenue_table", sample_csv, "csv")
         result = await engine.execute_query(
             "SELECT name, revenue FROM revenue_table ORDER BY revenue DESC",
@@ -67,7 +70,9 @@ class TestDuckDBEngine:
         assert result.execution_time_ms > 0
 
     @pytest.mark.asyncio
-    async def test_get_table_info_returns_schema(self, engine: DuckDBEngine, sample_csv: str) -> None:
+    async def test_get_table_info_returns_schema(
+        self, engine: DuckDBEngine, sample_csv: str
+    ) -> None:
         await engine.register_dataset("info_table", sample_csv, "csv")
         info = await engine.get_table_info("info_table")
         assert len(info) > 0

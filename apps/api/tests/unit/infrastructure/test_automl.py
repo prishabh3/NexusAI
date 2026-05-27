@@ -1,4 +1,5 @@
 """Tests for AutoML pipeline — problem inference and model benchmarking."""
+
 import numpy as np
 import pandas as pd
 import pytest
@@ -8,7 +9,9 @@ from src.infrastructure.ml.automl.pipeline import AutoMLConfig, AutoMLPipeline
 
 @pytest.fixture()
 def pipeline() -> AutoMLPipeline:
-    return AutoMLPipeline(AutoMLConfig(max_models=2, cv_folds=2, time_budget_seconds=30, include_shap=False))
+    return AutoMLPipeline(
+        AutoMLConfig(max_models=2, cv_folds=2, time_budget_seconds=30, include_shap=False)
+    )
 
 
 def make_classification_df(n: int = 200) -> pd.DataFrame:

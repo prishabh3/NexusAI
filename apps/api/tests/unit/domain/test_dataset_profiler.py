@@ -1,5 +1,5 @@
 """Unit tests for DatasetProfiler domain service."""
-import math
+
 import pytest
 
 from src.domain.entities.dataset import ColumnType
@@ -76,7 +76,6 @@ class TestProfileColumn:
 
 class TestComputeDataQualityScore:
     def test_complete_numeric_dataset_high_score(self, profiler: DatasetProfiler) -> None:
-        from src.domain.entities.dataset import ColumnProfile
 
         cols = [
             profiler.profile_column("a", list(range(100)), 100),

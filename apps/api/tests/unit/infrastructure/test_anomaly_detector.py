@@ -1,4 +1,5 @@
 """Tests for AnomalyDetector — validates detection quality, not exact results."""
+
 import numpy as np
 import pandas as pd
 import pytest
@@ -13,11 +14,13 @@ def detector() -> AnomalyDetector:
 
 def make_normal_df(n: int = 200) -> pd.DataFrame:
     rng = np.random.default_rng(42)
-    return pd.DataFrame({
-        "x": rng.normal(0, 1, n),
-        "y": rng.normal(5, 2, n),
-        "z": rng.normal(-3, 0.5, n),
-    })
+    return pd.DataFrame(
+        {
+            "x": rng.normal(0, 1, n),
+            "y": rng.normal(5, 2, n),
+            "z": rng.normal(-3, 0.5, n),
+        }
+    )
 
 
 class TestAnomalyDetector:

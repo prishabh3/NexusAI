@@ -1,5 +1,7 @@
 """Unit tests for domain entity behavior."""
+
 import uuid
+
 import pytest
 
 from src.domain.entities.analysis import Analysis, AnalysisResult, AnalysisStatus, AnalysisType

@@ -1,8 +1,9 @@
 """Integration tests for dataset API endpoints using HTTPX TestClient."""
-import io
+
 import csv
-from unittest.mock import AsyncMock, MagicMock, patch
+import io
 import uuid
+from unittest.mock import AsyncMock, patch
 
 import pytest
 from fastapi.testclient import TestClient
@@ -21,6 +22,7 @@ def make_csv_bytes(rows: int = 10) -> bytes:
 def client() -> TestClient:
     # Import here to avoid triggering DB connections at collection time
     from src.main import app
+
     return TestClient(app)
 
 
@@ -34,12 +36,14 @@ class TestHealthEndpoint:
 
 class TestDatasetUpload:
     def test_upload_valid_csv_returns_201(self, client: TestClient) -> None:
-        csv_content = make_csv_bytes()
         with (
-            patch("src.application.use_cases.upload_dataset.UploadDatasetUseCase.execute") as mock_exec,
-            patch("src.domain.repositories.dataset_repository.DatasetRepository.find_by_id") as mock_find,
+            patch(
+                "src.application.use_cases.upload_dataset.UploadDatasetUseCase.execute"
+            ) as mock_exec,
+            patch("src.domain.repositories.dataset_repository.DatasetRepository.find_by_id"),
         ):
             from src.application.use_cases.upload_dataset import UploadDatasetResult
+
             mock_id = uuid.uuid4()
             mock_exec.return_value = UploadDatasetResult(
                 dataset_id=mock_id,
