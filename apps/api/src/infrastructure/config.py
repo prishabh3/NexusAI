@@ -39,6 +39,7 @@ class Settings(BaseSettings):
         env_settings: Any,
         dotenv_settings: Any,
         secrets_settings: Any,
+        **kwargs: Any,
     ) -> tuple[Any, ...]:
         return (
             init_settings,
