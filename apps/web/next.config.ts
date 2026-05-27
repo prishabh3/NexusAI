@@ -4,6 +4,7 @@ const nextConfig: NextConfig = {
   reactStrictMode: true,
   poweredByHeader: false,
   compress: true,
+  output: "standalone",
   experimental: {
     optimizePackageImports: ["lucide-react", "recharts", "@radix-ui/react-dialog"],
   },
