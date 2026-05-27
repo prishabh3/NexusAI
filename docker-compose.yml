@@ -16,6 +16,7 @@ services:
       VECTOR_DB_URL: postgresql+asyncpg://nexus:nexus@postgres:5432/nexusai
       STORAGE_PATH: /app/data
       LOG_LEVEL: DEBUG
+      APP_CORS_ORIGINS: '["http://localhost:3000","http://localhost:8000"]'
     ports:
       - "8000:8000"
     volumes:
@@ -116,6 +117,7 @@ services:
       REDIS_URL: redis://redis:6379/0
       OLLAMA_BASE_URL: http://ollama:11434
       STORAGE_PATH: /app/data
+      APP_CORS_ORIGINS: '["http://localhost:3000","http://localhost:8000"]'
     volumes:
       - ./apps/api:/app
       - nexusai-data:/app/data
