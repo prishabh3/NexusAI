@@ -73,15 +73,3 @@ async def get_run_analysis_use_case(
     )
 
 
-def get_run_analysis_use_case_sync() -> RunAnalysisUseCase:
-    """Used in WebSocket context where Depends() is unavailable."""
-    from src.infrastructure.database.base import AsyncSessionFactory
-    from src.infrastructure.database.repositories.analysis_repo import SqlAlchemyAnalysisRepository
-    from src.infrastructure.database.repositories.dataset_repo import SqlAlchemyDatasetRepository
-    engine = get_duckdb_engine()
-    session = AsyncSessionFactory()
-    return RunAnalysisUseCase(
-        dataset_repo=SqlAlchemyDatasetRepository(session),
-        analysis_repo=SqlAlchemyAnalysisRepository(session),
-        duckdb_engine=engine,
-    )

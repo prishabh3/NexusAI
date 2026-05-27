@@ -32,10 +32,10 @@ class Settings(BaseSettings):
 
     # AI / Ollama
     ollama_base_url: str = "http://localhost:11434"
-    ollama_default_model: str = "qwen2.5:14b"
+    ollama_default_model: str = "qwen2.5:3b"
     ollama_embedding_model: str = "nomic-embed-text"
-    agent_max_iterations: int = 15
-    agent_timeout_seconds: int = 300
+    agent_max_iterations: int = 4
+    agent_timeout_seconds: int = 900
 
     # Storage
     storage_path: str = "./data"

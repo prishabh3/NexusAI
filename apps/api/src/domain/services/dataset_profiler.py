@@ -4,6 +4,15 @@ from __future__ import annotations
 import math
 from typing import Any
 
+
+def _is_null(v: Any) -> bool:
+    """Return True for None and pandas/numpy NaN floats."""
+    if v is None:
+        return True
+    if isinstance(v, float) and math.isnan(v):
+        return True
+    return False
+
 from src.domain.entities.dataset import (
     ColumnProfile,
     ColumnType,
@@ -27,7 +36,7 @@ class DatasetProfiler:
     )
 
     def infer_column_type(self, values: list[Any]) -> ColumnType:
-        non_null = [v for v in values if v is not None]
+        non_null = [v for v in values if not _is_null(v)]
         if not non_null:
             return ColumnType.UNKNOWN
 
@@ -65,8 +74,8 @@ class DatasetProfiler:
         total_rows: int,
     ) -> ColumnProfile:
         dtype = self.infer_column_type(values)
-        null_count = sum(1 for v in values if v is None)
-        non_null = [v for v in values if v is not None]
+        null_count = sum(1 for v in values if _is_null(v))
+        non_null = [v for v in values if not _is_null(v)]
         unique_values = list(set(non_null))
         unique_count = len(unique_values)
         cardinality = unique_count / total_rows if total_rows > 0 else 0.0

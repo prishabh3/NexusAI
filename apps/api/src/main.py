@@ -1,6 +1,7 @@
 """NexusAI API — FastAPI application entrypoint."""
 from __future__ import annotations
 
+import asyncio
 import logging
 import sys
 from collections.abc import AsyncGenerator
@@ -44,8 +45,17 @@ logger = structlog.get_logger(__name__)
 async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     logger.info("NexusAI API starting", env=settings.app_env, model=settings.ollama_default_model)
 
-    async with engine.begin() as conn:
-        await conn.run_sync(Base.metadata.create_all)
+    for attempt in range(10):
+        try:
+            async with engine.begin() as conn:
+                await conn.run_sync(Base.metadata.create_all)
+            break
+        except Exception as exc:
+            if attempt == 9:
+                logger.error("Database unreachable after 10 attempts, giving up", error=str(exc))
+                raise
+            logger.warning("Database not ready, retrying", attempt=attempt + 1, error=str(exc))
+            await asyncio.sleep(3)
 
     await event_bus.start()
     logger.info("Event bus initialized")

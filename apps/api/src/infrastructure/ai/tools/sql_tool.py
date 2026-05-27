@@ -57,7 +57,8 @@ class SQLGenerationTool:
                 raise ValueError(f"Mutation query not allowed: {pattern}")
 
         if self._table_name != "dataset" and "dataset" in query.lower():
-            query = re.sub(r"\bdataset\b", self._table_name, query, flags=re.IGNORECASE)
+            table = self._table_name
+            query = re.sub(r"\bdataset\b", lambda _: table, query, flags=re.IGNORECASE)
 
         return query
 

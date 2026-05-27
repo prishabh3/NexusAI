@@ -1,20 +1,13 @@
 import { Suspense } from "react";
-import { PageHeader } from "@/components/layout/page-header";
 import { InsightsView } from "@/features/insights/insights-view";
 
 export const metadata = { title: "Insights — NexusAI" };
 
 export default function InsightsPage() {
   return (
-    <div className="space-y-6">
-      <PageHeader
-        title="Insights"
-        description="AI-generated business insights with statistical evidence and recommended actions."
-      />
-      <Suspense fallback={<InsightsSkeleton />}>
-        <InsightsView />
-      </Suspense>
-    </div>
+    <Suspense fallback={<InsightsSkeleton />}>
+      <InsightsView />
+    </Suspense>
   );
 }
 

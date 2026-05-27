@@ -26,7 +26,7 @@ export const analysesApi = {
   create: async (datasetId: string, query: string, analysisType = "custom_query"): Promise<Analysis> => {
     const { data } = await apiClient.post("/analyses", {
       dataset_id: datasetId,
-      query,
+      user_query: query,
       analysis_type: analysisType,
     });
     return data;

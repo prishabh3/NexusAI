@@ -33,8 +33,8 @@ class SqlAlchemyAnalysisRepository(AnalysisRepository):
             status=analysis.status,
             user_query=analysis.user_query,
             configuration=analysis.configuration,
-            agent_steps=[s.model_dump() for s in analysis.agent_steps],
-            result=analysis.result.model_dump() if analysis.result else None,
+            agent_steps=[s.model_dump(mode="json") for s in analysis.agent_steps],
+            result=analysis.result.model_dump(mode="json") if analysis.result else None,
             error_message=analysis.error_message,
             duration_seconds=analysis.duration_seconds,
             prompt_tokens_used=analysis.prompt_tokens_used,
@@ -80,8 +80,8 @@ class SqlAlchemyAnalysisRepository(AnalysisRepository):
         if model is None:
             raise ValueError(f"Analysis {analysis.id} not found")
         model.status = analysis.status
-        model.agent_steps = [s.model_dump() for s in analysis.agent_steps]
-        model.result = analysis.result.model_dump() if analysis.result else None
+        model.agent_steps = [s.model_dump(mode="json") for s in analysis.agent_steps]
+        model.result = analysis.result.model_dump(mode="json") if analysis.result else None
         model.error_message = analysis.error_message
         model.duration_seconds = analysis.duration_seconds
         model.prompt_tokens_used = analysis.prompt_tokens_used

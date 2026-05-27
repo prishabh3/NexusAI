@@ -30,7 +30,7 @@ class OllamaClient:
     def __init__(self, base_url: str, model: str) -> None:
         self._base_url = base_url.rstrip("/")
         self._model = model
-        self._client = httpx.AsyncClient(timeout=httpx.Timeout(300.0))
+        self._client = httpx.AsyncClient(timeout=httpx.Timeout(None))
 
     async def chat(
         self,
@@ -42,7 +42,7 @@ class OllamaClient:
             "model": self._model,
             "messages": messages,
             "stream": False,
-            "options": {"temperature": temperature, "num_ctx": 8192},
+            "options": {"temperature": temperature, "num_ctx": 4096},
         }
         if tools:
             payload["tools"] = tools
@@ -60,7 +60,7 @@ class OllamaClient:
             "model": self._model,
             "messages": messages,
             "stream": True,
-            "options": {"temperature": temperature, "num_ctx": 8192},
+            "options": {"temperature": temperature, "num_ctx": 4096},
         }
         async with self._client.stream("POST", f"{self._base_url}/api/chat", json=payload) as response:
             response.raise_for_status()
@@ -129,20 +129,6 @@ class AnalysisCoordinator:
                             "intent": {"type": "string", "description": "Natural language description of what this query investigates"},
                         },
                         "required": ["query"],
-                    },
-                },
-            },
-            {
-                "type": "function",
-                "function": {
-                    "name": "sample_data",
-                    "description": SampleDataTool.description,
-                    "parameters": {
-                        "type": "object",
-                        "properties": {
-                            "n": {"type": "integer", "description": "Number of sample rows (default 20)"},
-                        },
-                        "required": [],
                     },
                 },
             },
@@ -255,6 +241,27 @@ class AnalysisCoordinator:
                 break
 
         final_text = self._extract_final_response(messages)
+
+        # If the loop exhausted iterations without a text response, force one synthesis call
+        # (no tools — model must write text)
+        if final_text == "Analysis complete." and sql_executions:
+            logger.info("Forcing synthesis call after %d tool iterations", iterations)
+            messages.append({
+                "role": "user",
+                "content": "Based on the query results above, write your analysis report now.",
+            })
+            try:
+                synth_response = await self._ollama.chat(
+                    messages=messages,
+                    tools=None,
+                    temperature=0.2,
+                )
+                synth_content = synth_response.get("message", {}).get("content", "")
+                if synth_content:
+                    final_text = synth_content
+            except httpx.HTTPError as exc:
+                logger.error("Synthesis call failed: %s", exc)
+
         key_findings = self._extract_key_findings(final_text)
         confidence = self._estimate_confidence(sql_executions, iterations)
 

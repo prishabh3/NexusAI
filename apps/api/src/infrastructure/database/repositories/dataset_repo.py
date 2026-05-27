@@ -1,7 +1,9 @@
 """SQLAlchemy implementation of DatasetRepository."""
 from __future__ import annotations
 
+import math
 import uuid
+from typing import Any
 
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -14,6 +16,17 @@ from src.domain.entities.dataset import (
 )
 from src.domain.repositories.dataset_repository import DatasetRepository
 from src.infrastructure.database.models import DatasetModel, DatasetVersionModel
+
+
+def _sanitize_json(obj: Any) -> Any:
+    """Recursively replace NaN/Inf floats with None so PostgreSQL JSON accepts the value."""
+    if isinstance(obj, float) and (math.isnan(obj) or math.isinf(obj)):
+        return None
+    if isinstance(obj, dict):
+        return {k: _sanitize_json(v) for k, v in obj.items()}
+    if isinstance(obj, list):
+        return [_sanitize_json(v) for v in obj]
+    return obj
 
 
 class SqlAlchemyDatasetRepository(DatasetRepository):
@@ -29,7 +42,7 @@ class SqlAlchemyDatasetRepository(DatasetRepository):
             file_path=dataset.file_path,
             file_format=dataset.file_format,
             status=dataset.status,
-            schema_data=dataset.schema.model_dump() if dataset.schema else None,
+            schema_data=_sanitize_json(dataset.schema.model_dump()) if dataset.schema else None,
             current_version=dataset.current_version,
             tags=dataset.tags,
             metadata_=dataset.metadata,
@@ -68,7 +81,7 @@ class SqlAlchemyDatasetRepository(DatasetRepository):
         model.name = dataset.name
         model.description = dataset.description
         model.status = dataset.status
-        model.schema_data = dataset.schema.model_dump() if dataset.schema else None
+        model.schema_data = _sanitize_json(dataset.schema.model_dump()) if dataset.schema else None
         model.current_version = dataset.current_version
         model.tags = dataset.tags
         model.metadata_ = dataset.metadata
@@ -93,7 +106,7 @@ class SqlAlchemyDatasetRepository(DatasetRepository):
             dataset_id=version.dataset_id,
             version_number=version.version_number,
             file_path=version.file_path,
-            schema_snapshot=version.schema_snapshot.model_dump() if version.schema_snapshot else None,
+            schema_snapshot=_sanitize_json(version.schema_snapshot.model_dump()) if version.schema_snapshot else None,
             row_count=version.row_count,
             size_bytes=version.size_bytes,
             notes=version.notes,

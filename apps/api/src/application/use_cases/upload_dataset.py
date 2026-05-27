@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import logging
+import math
 import uuid
 from dataclasses import dataclass
 
@@ -134,8 +135,10 @@ class UploadDatasetUseCase:
             corr_matrix = df[numeric_cols].corr()
             corr = {
                 col: {
-                    other: round(float(corr_matrix.loc[col, other]), 4)
-                    for other in numeric_cols if other != col
+                    other: round(v, 4)
+                    for other in numeric_cols
+                    if other != col
+                    and not math.isnan(v := float(corr_matrix.loc[col, other]))
                 }
                 for col in numeric_cols
             }

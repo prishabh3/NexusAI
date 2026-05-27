@@ -67,6 +67,7 @@ class RunAnalysisUseCase:
             )
 
         table_name = dataset.metadata.get("duckdb_table", f"ds_{dataset.id.hex[:12]}")
+        await self._ensure_table_registered(dataset, table_name)
 
         analysis = Analysis(
             dataset_id=command.dataset_id,
@@ -109,6 +110,19 @@ class RunAnalysisUseCase:
                 aggregate_id=analysis.id,
             ))
             raise
+
+    async def _ensure_table_registered(self, dataset: Dataset, table_name: str) -> None:
+        """Re-register the dataset in DuckDB if the view was lost (e.g. after API restart)."""
+        try:
+            result = await self._engine.execute_query(f"SELECT 1 FROM {table_name} LIMIT 1")
+            if result.error:
+                raise Exception(result.error)
+        except Exception:
+            if dataset.file_path and dataset.file_format:
+                logger.info("Re-registering DuckDB table %s from %s", table_name, dataset.file_path)
+                await self._engine.register_dataset(table_name, dataset.file_path, dataset.file_format)
+            else:
+                raise DatasetNotReadyError(f"Dataset {dataset.id} has no file_path or file_format")
 
     async def _dispatch(
         self,

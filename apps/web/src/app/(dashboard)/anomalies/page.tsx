@@ -1,20 +1,13 @@
 import { Suspense } from "react";
-import { PageHeader } from "@/components/layout/page-header";
 import { AnomaliesView } from "@/features/anomaly/anomalies-view";
 
 export const metadata = { title: "Anomalies — NexusAI" };
 
 export default function AnomaliesPage() {
   return (
-    <div className="space-y-6">
-      <PageHeader
-        title="Anomaly Detection"
-        description="Ensemble anomaly detection using IsolationForest, LOF, and DBSCAN."
-      />
-      <Suspense fallback={<AnomalySkeleton />}>
-        <AnomaliesView />
-      </Suspense>
-    </div>
+    <Suspense fallback={<AnomalySkeleton />}>
+      <AnomaliesView />
+    </Suspense>
   );
 }
 

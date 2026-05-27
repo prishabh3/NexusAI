@@ -34,8 +34,7 @@ export function DashboardOverview() {
       : 0;
 
   return (
-    <div className="space-y-6">
-      {/* KPI row */}
+    <div className="space-y-5">
       <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
         <KpiCard
           title="Datasets"
@@ -43,6 +42,7 @@ export function DashboardOverview() {
           subtitle={`${datasets.length} total`}
           icon={Database}
           trend={null}
+          color="blue"
         />
         <KpiCard
           title="Total Rows"
@@ -50,26 +50,28 @@ export function DashboardOverview() {
           subtitle="across all datasets"
           icon={ActivitySquare}
           trend={null}
+          color="purple"
         />
         <KpiCard
-          title="Analyses Run"
+          title="Analyses"
           value={formatNumber(recentAnalyses.length)}
           subtitle={`${completedAnalyses.length} completed`}
           icon={Lightbulb}
           trend={null}
+          color="green"
         />
         <KpiCard
-          title="Avg. Quality"
+          title="Avg Quality"
           value={`${(avgQuality * 100).toFixed(0)}%`}
           subtitle="data quality score"
           icon={AlertTriangle}
           trend={avgQuality > 0.8 ? "up" : avgQuality > 0.6 ? "neutral" : "down"}
+          color="orange"
         />
       </div>
 
-      {/* Main content grid */}
-      <div className="grid grid-cols-3 gap-6">
-        <div className="col-span-2 space-y-6">
+      <div className="grid grid-cols-3 gap-5">
+        <div className="col-span-2 space-y-5">
           <DatasetHealthGrid datasets={readyDatasets} />
           <RecentAnalysesList analyses={recentAnalyses} />
         </div>

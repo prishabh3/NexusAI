@@ -75,6 +75,26 @@ async def run_analysis(
         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(exc)) from exc
 
 
+@router.get("/recent", response_model=list[AnalysisSummaryResponse])
+async def list_recent_analyses(
+    limit: int = Query(default=10, le=50),
+    repo: AnalysisRepository = Depends(get_analysis_repo),
+) -> list[AnalysisSummaryResponse]:
+    analyses = await repo.find_recent(limit=limit)
+    return [_to_summary(a) for a in analyses]
+
+
+@router.get("/dataset/{dataset_id}", response_model=list[AnalysisSummaryResponse])
+async def list_analyses_for_dataset(
+    dataset_id: uuid.UUID,
+    limit: int = Query(default=20, le=100),
+    offset: int = Query(default=0, ge=0),
+    repo: AnalysisRepository = Depends(get_analysis_repo),
+) -> list[AnalysisSummaryResponse]:
+    analyses = await repo.find_by_dataset_id(dataset_id, limit=limit, offset=offset)
+    return [_to_summary(a) for a in analyses]
+
+
 @router.get("/{analysis_id}", response_model=AnalysisDetailResponse)
 async def get_analysis(
     analysis_id: uuid.UUID,
@@ -89,23 +109,3 @@ async def get_analysis(
         result=analysis.result,
         error_message=analysis.error_message,
     )
-
-
-@router.get("/dataset/{dataset_id}", response_model=list[AnalysisSummaryResponse])
-async def list_analyses_for_dataset(
-    dataset_id: uuid.UUID,
-    limit: int = Query(default=20, le=100),
-    offset: int = Query(default=0, ge=0),
-    repo: AnalysisRepository = Depends(get_analysis_repo),
-) -> list[AnalysisSummaryResponse]:
-    analyses = await repo.find_by_dataset_id(dataset_id, limit=limit, offset=offset)
-    return [_to_summary(a) for a in analyses]
-
-
-@router.get("/recent", response_model=list[AnalysisSummaryResponse])
-async def list_recent_analyses(
-    limit: int = Query(default=10, le=50),
-    repo: AnalysisRepository = Depends(get_analysis_repo),
-) -> list[AnalysisSummaryResponse]:
-    analyses = await repo.find_recent(limit=limit)
-    return [_to_summary(a) for a in analyses]

@@ -23,7 +23,7 @@ RUN pip install -e ".[dev]"
 COPY . .
 
 EXPOSE 8000
-CMD ["uvicorn", "src.main:app", "--host", "0.0.0.0", "--port", "8000", "--reload", "--log-level", "debug"]
+CMD ["uvicorn", "src.main:app", "--host", "0.0.0.0", "--port", "8000", "--reload", "--reload-exclude", "**/__pycache__/**", "--reload-exclude", "**/*.pyc", "--log-level", "info"]
 
 # ─── Build dependencies ───────────────────────────────────────────────────────
 FROM base AS builder

@@ -4,67 +4,71 @@
 
 @layer base {
   :root {
-    /* Enterprise light theme — inspired by Vercel/Linear */
-    --background: 0 0% 100%;
-    --foreground: 222 47% 11%;
+    --background: 0 0% 98%;
+    --foreground: 240 10% 4%;
 
     --card: 0 0% 100%;
-    --card-foreground: 222 47% 11%;
+    --card-foreground: 240 10% 4%;
 
     --popover: 0 0% 100%;
-    --popover-foreground: 222 47% 11%;
+    --popover-foreground: 240 10% 4%;
 
-    --primary: 222 83% 55%;
+    --primary: 234 89% 60%;
     --primary-foreground: 0 0% 100%;
 
-    --secondary: 220 14% 96%;
-    --secondary-foreground: 222 47% 11%;
+    --secondary: 240 5% 96%;
+    --secondary-foreground: 240 10% 4%;
 
-    --muted: 220 14% 96%;
-    --muted-foreground: 215 16% 47%;
+    --muted: 240 5% 96%;
+    --muted-foreground: 240 4% 46%;
 
-    --accent: 220 14% 96%;
-    --accent-foreground: 222 47% 11%;
+    --accent: 240 5% 94%;
+    --accent-foreground: 240 10% 4%;
 
     --destructive: 0 84% 60%;
     --destructive-foreground: 0 0% 100%;
 
-    --border: 220 13% 91%;
-    --input: 220 13% 91%;
-    --ring: 222 83% 55%;
+    --border: 240 6% 90%;
+    --input: 240 6% 90%;
+    --ring: 234 89% 60%;
 
-    --radius: 6px;
+    --sidebar: 240 6% 97%;
+    --sidebar-foreground: 240 10% 4%;
+
+    --radius: 8px;
   }
 
   .dark {
-    /* Enterprise dark theme — inspired by Linear/Vercel dark */
-    --background: 224 71% 4%;
-    --foreground: 213 31% 91%;
+    --background: 240 10% 4%;
+    --foreground: 0 0% 93%;
 
-    --card: 224 71% 6%;
-    --card-foreground: 213 31% 91%;
+    --card: 240 9% 6%;
+    --card-foreground: 0 0% 93%;
 
-    --popover: 224 71% 6%;
-    --popover-foreground: 213 31% 91%;
+    --popover: 240 9% 7%;
+    --popover-foreground: 0 0% 93%;
 
-    --primary: 213 94% 68%;
-    --primary-foreground: 224 71% 4%;
+    --primary: 234 89% 65%;
+    --primary-foreground: 234 89% 10%;
 
-    --secondary: 222 47% 11%;
-    --secondary-foreground: 213 31% 91%;
+    --secondary: 240 6% 10%;
+    --secondary-foreground: 0 0% 93%;
 
-    --muted: 223 47% 11%;
-    --muted-foreground: 215 20% 55%;
+    --muted: 240 6% 10%;
+    --muted-foreground: 240 5% 55%;
 
-    --accent: 216 34% 17%;
-    --accent-foreground: 213 31% 91%;
+    --accent: 240 6% 12%;
+    --accent-foreground: 0 0% 93%;
 
     --destructive: 0 63% 55%;
-    --destructive-foreground: 213 31% 91%;
+    --destructive-foreground: 0 0% 93%;
 
-    --border: 216 34% 17%;
-    --input: 216 34% 17%;
-    --ring: 213 94% 68%;
+    --border: 240 6% 13%;
+    --input: 240 6% 13%;
+    --ring: 234 89% 65%;
+
+    --sidebar: 240 10% 3%;
+    --sidebar-foreground: 0 0% 93%;
   }
 }
 
@@ -75,13 +79,12 @@
 
   body {
     @apply bg-background text-foreground antialiased;
-    font-feature-settings: "rlig" 1, "calt" 1;
+    font-feature-settings: "rlig" 1, "calt" 1, "ss01" 1;
   }
 
-  /* Scrollbar — subtle, enterprise style */
   ::-webkit-scrollbar {
-    width: 6px;
-    height: 6px;
+    width: 5px;
+    height: 5px;
   }
 
   ::-webkit-scrollbar-track {
@@ -93,56 +96,35 @@
   }
 
   ::-webkit-scrollbar-thumb:hover {
-    @apply bg-muted-foreground/30;
+    @apply bg-muted-foreground/25;
   }
 }
 
 @layer components {
-  /* Skeleton loader */
   .skeleton {
     background: linear-gradient(
       90deg,
       hsl(var(--muted)) 25%,
-      hsl(var(--muted) / 0.6) 50%,
+      hsl(var(--muted) / 0.5) 50%,
       hsl(var(--muted)) 75%
     );
     background-size: 200% 100%;
-    @apply animate-skeleton rounded;
+    @apply animate-skeleton rounded-md;
   }
 
-  /* Data table styles */
-  .data-table-row {
-    @apply border-b border-border transition-colors hover:bg-muted/40;
-  }
-
-  /* Code block */
-  .code-block {
-    @apply rounded-md bg-nexus-slate-950 p-4 font-mono text-sm text-nexus-slate-100;
-  }
-
-  /* Status dot */
   .status-dot {
-    @apply inline-block h-2 w-2 rounded-full;
+    @apply inline-block h-1.5 w-1.5 rounded-full;
   }
-  .status-dot.running {
-    @apply animate-pulse-subtle bg-blue-500;
-  }
-  .status-dot.completed {
-    @apply bg-green-500;
-  }
-  .status-dot.failed {
-    @apply bg-red-500;
-  }
-  .status-dot.queued {
-    @apply bg-yellow-500;
-  }
+  .status-dot.running  { @apply animate-pulse-subtle bg-blue-500; }
+  .status-dot.completed { @apply bg-emerald-500; }
+  .status-dot.failed   { @apply bg-red-500; }
+  .status-dot.queued   { @apply bg-amber-500; }
 }
 
-/* Recharts customizations */
 .recharts-tooltip-wrapper {
   @apply !outline-none;
 }
 
 .recharts-default-tooltip {
-  @apply !rounded-md !border !border-border !bg-card !text-sm !shadow-elevated;
+  @apply !rounded-lg !border !border-border !bg-card !text-sm !shadow-elevated;
 }

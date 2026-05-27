@@ -14,6 +14,13 @@ interface Props {
   analysisId: string;
 }
 
+const STATUS_CONFIG = {
+  completed: { icon: CheckCircle2, color: "text-emerald-500", label: "Completed" },
+  running:   { icon: Loader2,      color: "text-blue-500",    label: "Running",   spin: true },
+  failed:    { icon: AlertCircle,  color: "text-red-500",     label: "Failed" },
+  queued:    { icon: Clock,        color: "text-amber-500",   label: "Queued" },
+} as const;
+
 export function AnalysisDetailView({ analysisId }: Props) {
   const { data: analysis, isLoading, isError } = useQuery<AnalysisDetail>({
     queryKey: ["analyses", analysisId],
@@ -25,163 +32,157 @@ export function AnalysisDetailView({ analysisId }: Props) {
 
   if (isError || !analysis) {
     return (
-      <div className="rounded-lg border border-destructive/30 bg-destructive/5 px-4 py-8 text-center">
-        <AlertCircle className="mx-auto h-8 w-8 text-destructive/60" />
-        <p className="mt-2 text-sm text-destructive">Analysis not found.</p>
+      <div className="rounded-lg border border-destructive/20 bg-destructive/5 px-4 py-8 text-center">
+        <AlertCircle className="mx-auto h-7 w-7 text-destructive/50" />
+        <p className="mt-2 text-sm text-destructive/80">Analysis not found.</p>
       </div>
     );
   }
 
-  const durationSec = analysis.duration_seconds;
   const mlResults: MLResult[] = analysis.result?.ml_results ?? [];
-
-  // Aggregate across all ML results for display
   const allAnomalies = mlResults.flatMap((r) => r.anomalies ?? []);
   const allForecastPoints = mlResults.flatMap((r) => r.forecast_points ?? []);
   const primaryModel = mlResults[0] ?? null;
 
+  const statusCfg = STATUS_CONFIG[analysis.status as keyof typeof STATUS_CONFIG] ?? STATUS_CONFIG.queued;
+  const StatusIcon = statusCfg.icon;
+
   return (
-    <div className="space-y-6">
-      {/* Status card */}
-      <div className="rounded-lg border border-border bg-card px-5 py-4 shadow-card">
+    <div className="space-y-5">
+      {/* Header */}
+      <div className="rounded-xl border border-border bg-card p-5 shadow-card">
         <div className="flex items-start justify-between gap-4">
           <div className="min-w-0">
-            <p className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
+            <p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">
               {analysis.analysis_type.replace(/_/g, " ")}
             </p>
-            <p className="mt-1 text-sm text-foreground leading-relaxed">
-              {analysis.user_query || "Full automated pipeline"}
+            <p className="mt-1 text-sm font-medium text-foreground leading-relaxed">
+              {analysis.user_query || "Automated pipeline"}
             </p>
           </div>
-          <div className="flex items-center gap-2 flex-shrink-0">
-            {analysis.status === "running" && (
-              <Loader2 className="h-4 w-4 animate-spin text-blue-500" />
-            )}
-            {analysis.status === "completed" && (
-              <CheckCircle2 className="h-4 w-4 text-green-500" />
-            )}
-            {analysis.status === "failed" && (
-              <AlertCircle className="h-4 w-4 text-red-500" />
-            )}
-            <span className={cn(
-              "text-xs font-medium capitalize",
-              analysis.status === "completed" ? "text-green-600 dark:text-green-400" :
-              analysis.status === "failed" ? "text-red-600 dark:text-red-400" :
-              analysis.status === "running" ? "text-blue-600 dark:text-blue-400" :
-              "text-muted-foreground"
-            )}>
-              {analysis.status}
+          <div className="flex items-center gap-1.5 flex-shrink-0">
+            <StatusIcon
+              className={cn("h-3.5 w-3.5", statusCfg.color, "spin" in statusCfg && "animate-spin")}
+            />
+            <span className={cn("text-[12px] font-medium", statusCfg.color)}>
+              {statusCfg.label}
             </span>
           </div>
         </div>
-        <div className="mt-3 flex items-center gap-4 text-xs text-muted-foreground">
+        <div className="mt-3 flex items-center gap-3 text-[11px] text-muted-foreground">
           <span>{new Date(analysis.created_at).toLocaleString()}</span>
-          {durationSec !== null && (
+          {analysis.duration_seconds != null && (
             <span className="flex items-center gap-1">
               <Clock className="h-3 w-3" />
-              {formatDuration(durationSec)}
+              {formatDuration(analysis.duration_seconds)}
             </span>
           )}
-          {analysis.step_count > 0 && (
-            <span>{analysis.step_count} agent steps</span>
-          )}
+          {analysis.step_count > 0 && <span>{analysis.step_count} agent steps</span>}
         </div>
         {analysis.error_message && (
-          <p className="mt-3 rounded-md bg-destructive/10 px-3 py-2 text-xs text-destructive">
+          <p className="mt-3 rounded-md bg-destructive/8 px-3 py-2 text-xs text-destructive">
             {analysis.error_message}
           </p>
         )}
       </div>
 
-      {/* Agent step trace */}
+      {/* Agent trace */}
       {analysis.agent_steps.length > 0 && (
-        <section>
-          <h3 className="mb-3 text-sm font-medium text-foreground">Agent Trace</h3>
+        <div>
+          <p className="mb-2 text-[11px] font-semibold uppercase tracking-widest text-muted-foreground">
+            Agent Trace
+          </p>
           <div className="space-y-1">
             {analysis.agent_steps.map((step, i) => (
               <AgentStepTrace key={i} step={step} />
             ))}
           </div>
-        </section>
+        </div>
       )}
 
-      {/* ML results */}
       {analysis.result && (
-        <>
-          {/* Anomalies */}
-          {allAnomalies.length > 0 && (
-            <section>
-              <h3 className="mb-3 text-sm font-medium text-foreground">Detected Anomalies</h3>
-              <div className="rounded-lg border border-border bg-card p-4 shadow-card">
-                <AnomalyTimeline anomalies={allAnomalies} totalRows={1000} />
-              </div>
-            </section>
+        <div className="space-y-5">
+          {/* Summary — most important, put first */}
+          {analysis.result.summary && (
+            <div className="rounded-xl border border-border bg-card p-5 shadow-card">
+              <p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground mb-3">Summary</p>
+              <p className="text-[13.5px] leading-relaxed text-foreground/85">{analysis.result.summary}</p>
+            </div>
           )}
 
-          {/* Forecast */}
-          {allForecastPoints.length > 0 && (
-            <section>
-              <h3 className="mb-3 text-sm font-medium text-foreground">Forecast</h3>
-              <div className="rounded-lg border border-border bg-card p-4 shadow-card">
-                <ForecastChart points={allForecastPoints} metric={primaryModel?.model_name ?? "value"} />
-              </div>
-            </section>
-          )}
-
-          {/* Feature importance */}
-          {primaryModel?.feature_importance && Object.keys(primaryModel.feature_importance).length > 0 && (
-            <section>
-              <h3 className="mb-3 text-sm font-medium text-foreground">Feature Importance (SHAP)</h3>
-              <div className="rounded-lg border border-border bg-card p-4 shadow-card">
-                <FeatureImportanceChart importance={primaryModel.feature_importance} />
-              </div>
-            </section>
+          {/* Key findings */}
+          {analysis.result.key_findings.length > 0 && (
+            <div className="rounded-xl border border-border bg-card p-5 shadow-card">
+              <p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground mb-3">Key Findings</p>
+              <ul className="space-y-2.5">
+                {analysis.result.key_findings.map((finding, i) => (
+                  <li key={i} className="flex items-start gap-2.5 text-[13px] text-foreground/80">
+                    <span className="mt-2 h-1 w-1 flex-shrink-0 rounded-full bg-primary" />
+                    {finding}
+                  </li>
+                ))}
+              </ul>
+            </div>
           )}
 
           {/* Model metrics */}
           {primaryModel?.metrics && Object.keys(primaryModel.metrics).length > 0 && (
-            <section>
-              <h3 className="mb-3 text-sm font-medium text-foreground">Model Metrics</h3>
+            <div>
+              <p className="mb-2.5 text-[11px] font-semibold uppercase tracking-widest text-muted-foreground">
+                Model Metrics
+              </p>
               <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
                 {Object.entries(primaryModel.metrics).map(([key, val]) => (
-                  <div key={key} className="rounded-lg border border-border bg-card px-4 py-3 shadow-card">
-                    <p className="text-xs text-muted-foreground capitalize">{key.replace(/_/g, " ")}</p>
-                    <p className="mt-1 text-lg font-semibold tabular-nums text-foreground">
+                  <div key={key} className="rounded-lg border border-border bg-card px-4 py-3">
+                    <p className="text-[10px] text-muted-foreground capitalize">{key.replace(/_/g, " ")}</p>
+                    <p className="mt-1 text-xl font-semibold tabular-nums text-foreground">
                       {typeof val === "number" ? val.toFixed(4) : String(val)}
                     </p>
                   </div>
                 ))}
               </div>
-            </section>
+            </div>
           )}
 
-          {/* Key findings */}
-          {analysis.result.key_findings.length > 0 && (
-            <section>
-              <h3 className="mb-3 text-sm font-medium text-foreground">Key Findings</h3>
-              <div className="rounded-lg border border-border bg-card px-5 py-4 shadow-card">
-                <ul className="space-y-2">
-                  {analysis.result.key_findings.map((finding, i) => (
-                    <li key={i} className="flex items-start gap-2 text-sm text-foreground/80">
-                      <span className="mt-1.5 h-1.5 w-1.5 flex-shrink-0 rounded-full bg-primary" />
-                      {finding}
-                    </li>
-                  ))}
-                </ul>
+          {/* Anomalies */}
+          {allAnomalies.length > 0 && (
+            <div>
+              <p className="mb-2.5 text-[11px] font-semibold uppercase tracking-widest text-muted-foreground">
+                Detected Anomalies
+              </p>
+              <div className="rounded-xl border border-border bg-card p-4 shadow-card">
+                <AnomalyTimeline
+                  anomalies={allAnomalies}
+                  totalRows={allAnomalies.length > 0 ? Math.max(...allAnomalies.map(a => a.row_index)) + 1 : 1}
+                />
               </div>
-            </section>
+            </div>
           )}
 
-          {/* Summary */}
-          {analysis.result.summary && (
-            <section>
-              <h3 className="mb-3 text-sm font-medium text-foreground">Analysis Summary</h3>
-              <div className="rounded-lg border border-border bg-card px-5 py-4 shadow-card">
-                <p className="text-sm leading-relaxed text-foreground/80">{analysis.result.summary}</p>
+          {/* Forecast */}
+          {allForecastPoints.length > 0 && (
+            <div>
+              <p className="mb-2.5 text-[11px] font-semibold uppercase tracking-widest text-muted-foreground">
+                Forecast
+              </p>
+              <div className="rounded-xl border border-border bg-card p-4 shadow-card">
+                <ForecastChart points={allForecastPoints} metric={primaryModel?.model_name ?? "value"} />
               </div>
-            </section>
+            </div>
           )}
-        </>
+
+          {/* Feature importance */}
+          {primaryModel?.feature_importance && Object.keys(primaryModel.feature_importance).length > 0 && (
+            <div>
+              <p className="mb-2.5 text-[11px] font-semibold uppercase tracking-widest text-muted-foreground">
+                Feature Importance
+              </p>
+              <div className="rounded-xl border border-border bg-card p-4 shadow-card">
+                <FeatureImportanceChart importance={primaryModel.feature_importance} />
+              </div>
+            </div>
+          )}
+        </div>
       )}
     </div>
   );

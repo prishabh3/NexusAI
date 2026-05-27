@@ -87,6 +87,7 @@ class AutoMLPipeline:
         candidates = self._get_candidate_models(problem)
         benchmarks: list[ModelBenchmark] = []
         best_model = None
+        best_model_name: str = ""
         best_score = -np.inf
 
         deadline = time.time() + self.config.time_budget_seconds
