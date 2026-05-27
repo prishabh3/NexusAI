@@ -38,7 +38,7 @@ You upload a CSV, Parquet, or JSON file. NexusAI sends it to a local language mo
 | | SQLAlchemy 2.0 async | ORM; `AsyncSession` per request via `Depends` |
 | | Alembic | Schema migrations |
 | | structlog | Structured JSON logging |
-| **AI / Agents** | Ollama | Local LLM inference (`qwen2.5:14b` default) |
+| **AI / Agents** | Ollama | Local LLM inference (`qwen2.5:3b` default) |
 | | httpx | Async HTTP client that calls Ollama's `/api/chat` |
 | | LangChain / LangGraph | Listed in `pyproject.toml` but agent loop is custom |
 | **Analytics** | DuckDB 1.1 | In-process OLAP SQL engine; one connection per thread |
@@ -119,13 +119,14 @@ Events are published on the internal `EventBus` at each stage: `dataset.uploaded
 
 You type a question in the Query page and press Send. The browser opens a WebSocket to `WS /ws/analysis/{dataset_id}` and sends `{"query": "...", "type": "eda"}`.
 
-The `AnalysisCoordinator` receives the request and enters a loop (capped at `AGENT_MAX_ITERATIONS`, default 15):
+The `AnalysisCoordinator` receives the request and enters a loop (capped at `AGENT_MAX_ITERATIONS`, default 4):
 
-1. Call Ollama's `/api/chat` with the system prompt, the user's question, and three tool definitions: `inspect_schema`, `execute_sql`, `sample_data`.
+1. Call Ollama's `/api/chat` with the system prompt, the user's question, and two tool definitions: `inspect_schema` and `execute_sql`.
 2. Ollama responds with either a `tool_calls` array or plain text.
 3. If there are tool calls, dispatch each one. `execute_sql` goes through `SQLGenerationTool`, which first strips dangerous keywords (`DROP`, `TRUNCATE`, `DELETE`, `INSERT`, `UPDATE`, `CREATE TABLE`, `ALTER`) with a regex scan, then hands the query to `DuckDBEngine.execute_query`. The engine runs the query inside a `ThreadPoolExecutor` — DuckDB connections are not thread-safe, so the engine keeps one connection per thread keyed by `threading.get_ident()`.
 4. Tool results are appended to the message list as `role: tool` messages and the loop continues.
-5. When Ollama returns a response with no tool calls (or `done_reason: stop`), the loop breaks. The final assistant message becomes the summary. Lines starting with `-`, `•`, or numbered lists are extracted as `key_findings`.
+5. When Ollama returns a response with no tool calls (or `done_reason: stop`), the loop breaks. The final assistant message becomes the summary.
+6. If the loop exhausts all iterations on tool calls without producing text, a final synthesis call is made with `tools=None`, forcing the model to write a text report from the query results in context. Lines starting with `-`, `•`, or numbered lists are extracted as `key_findings`.
 
 Each iteration emits a `step` WebSocket event to the browser. The browser renders each step live in the agent trace panel.
 
@@ -199,14 +200,16 @@ docker compose ps   # all should show "healthy" or "running"
 The API cannot run analyses until Ollama has at least one model downloaded:
 
 ```bash
-# Recommended — needs ~9 GB VRAM or ~16 GB RAM
-docker exec nexusai-ollama ollama pull qwen2.5:14b
+# Default — fast on CPU, needs ~3 GB RAM
+docker exec nexusai-ollama ollama pull qwen2.5:3b
 
-# Lighter alternative — needs ~5 GB VRAM or ~8 GB RAM
+# Higher quality — needs ~8 GB VRAM or ~16 GB RAM
 docker exec nexusai-ollama ollama pull qwen2.5:7b
 ```
 
 The model is stored in the `ollama-models` Docker volume, so you only need to pull it once.
+
+> **Apple Silicon tip:** For 50–100× faster inference, run Ollama natively on your Mac (so it uses Metal GPU) instead of inside Docker. Install Ollama from [ollama.com](https://ollama.com), then in `docker-compose.yml` change the `api` service's `OLLAMA_BASE_URL` to `http://host.docker.internal:11434` and remove the `ollama` service from the compose file. A full analysis drops from ~15 minutes to ~30 seconds.
 
 ### 4. Open the app
 
@@ -604,7 +607,7 @@ Every SELECT query automatically gets `LIMIT 10000` appended by `_apply_row_limi
 
 ### Agentic loop with a hard iteration cap
 
-The coordinator loop runs up to `AGENT_MAX_ITERATIONS` (default 15) turns. This prevents infinite loops when the model keeps calling tools without reaching a conclusion. If the agent hits the cap, the last assistant message is used as the summary regardless.
+The coordinator loop runs up to `AGENT_MAX_ITERATIONS` (default 4) turns. This prevents infinite loops when the model keeps calling tools without reaching a conclusion. If the loop exhausts all iterations on tool calls without generating text, a final forced synthesis call is made with no tools available, so the model must write a report based on the query results already in its context window.
 
 Temperature is set to 0.1 for all SQL generation calls. Lower temperature means the model picks the most likely next token, which produces more deterministic SQL rather than creative but incorrect queries.
 
@@ -845,7 +848,7 @@ docker compose ps nexusai-ollama
 docker exec nexusai-ollama ollama list
 ```
 
-If the model list is empty, pull a model (see Quick Start step 3). The API logs will show `Model 'qwen2.5:14b' not found` if the requested model was never pulled.
+If the model list is empty, pull a model (see Quick Start step 3). The API logs will show `Model 'qwen2.5:3b' not found` if the requested model was never pulled.
 
 ### DuckDB "Table not found" error in analysis
 
