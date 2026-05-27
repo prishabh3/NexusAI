@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import asyncio
 import logging
+import re
 import time
 import uuid
 from collections.abc import Generator
@@ -172,7 +173,7 @@ class DuckDBEngine:
     @staticmethod
     def _apply_row_limit(query: str, max_rows: int) -> str:
         normalized = query.strip().rstrip(";").upper()
-        if "LIMIT" not in normalized and normalized.startswith("SELECT"):
+        if not re.search(r"\bLIMIT\b", normalized) and normalized.startswith("SELECT"):
             return f"{query.strip().rstrip(';')} LIMIT {max_rows}"
         return query
 
