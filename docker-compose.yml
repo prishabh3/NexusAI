@@ -31,8 +31,8 @@ services:
 
   web:
     build:
-      context: ./apps/web
-      dockerfile: Dockerfile
+      context: .
+      dockerfile: apps/web/Dockerfile
       target: development
     container_name: nexusai-web
     restart: unless-stopped
@@ -42,9 +42,9 @@ services:
     ports:
       - "3000:3000"
     volumes:
-      - ./apps/web:/app
+      - ./apps/web:/app/apps/web
       - /app/node_modules
-      - /app/.next
+      - /app/apps/web/.next
     depends_on:
       - api
     networks:
