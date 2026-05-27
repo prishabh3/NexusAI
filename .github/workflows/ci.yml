@@ -171,7 +171,13 @@ jobs:
     if: github.ref == 'refs/heads/main'
     strategy:
       matrix:
-        app: [api, web]
+        include:
+          - app: api
+            context: apps/api
+            file: apps/api/Dockerfile
+          - app: web
+            context: .
+            file: apps/web/Dockerfile
     steps:
       - uses: actions/checkout@v4
 
@@ -197,7 +203,8 @@ jobs:
       - name: Build and push
         uses: docker/build-push-action@v6
         with:
-          context: apps/${{ matrix.app }}
+          context: ${{ matrix.context }}
+          file: ${{ matrix.file }}
           target: production
           push: true
           tags: ${{ steps.meta.outputs.tags }}
