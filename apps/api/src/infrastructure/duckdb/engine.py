@@ -1,4 +1,5 @@
 """DuckDB analytical engine — thread-safe, connection-pooled query executor."""
+
 from __future__ import annotations
 
 import asyncio
@@ -35,6 +36,7 @@ class DuckDBEngine:
 
     def _get_connection(self) -> duckdb.DuckDBPyConnection:
         import threading
+
         tid = threading.get_ident()
         if tid not in self._connections:
             conn = duckdb.connect(self._db_path)
@@ -111,7 +113,9 @@ class DuckDBEngine:
 
         loop = asyncio.get_event_loop()
         try:
-            records, _error = await loop.run_in_executor(_executor, self._execute_sync, limited_query)
+            records, _error = await loop.run_in_executor(
+                _executor, self._execute_sync, limited_query
+            )
             duration_ms = (time.perf_counter() - start) * 1000
 
             plan: str | None = None
@@ -147,9 +151,7 @@ class DuckDBEngine:
         return result.result_preview
 
     async def sample_data(self, table_name: str, n: int = 100) -> list[dict[str, Any]]:
-        result = await self.execute_query(
-            f"SELECT * FROM {table_name} USING SAMPLE {n} ROWS"
-        )
+        result = await self.execute_query(f"SELECT * FROM {table_name} USING SAMPLE {n} ROWS")
         return result.result_preview
 
     async def get_column_stats(self, table_name: str, column: str) -> dict[str, Any]:

@@ -1,4 +1,5 @@
 """Insight retrieval and semantic search endpoints."""
+
 from __future__ import annotations
 
 import uuid

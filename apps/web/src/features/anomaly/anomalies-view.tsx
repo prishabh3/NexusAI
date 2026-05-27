@@ -42,7 +42,7 @@ export function AnomaliesView() {
         <FlaskConical className="mx-auto h-10 w-10 text-muted-foreground/40" />
         <p className="mt-3 text-sm font-medium text-muted-foreground">No anomaly analyses yet</p>
         <p className="mt-1 text-xs text-muted-foreground/60">
-          Ask the agent to "detect anomalies" in the Query tab.
+          Ask the agent to &quot;detect anomalies&quot; in the Query tab.
         </p>
       </div>
     );

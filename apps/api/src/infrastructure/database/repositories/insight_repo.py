@@ -1,4 +1,5 @@
 """SQLAlchemy + pgvector implementation of InsightRepository."""
+
 from __future__ import annotations
 
 import uuid

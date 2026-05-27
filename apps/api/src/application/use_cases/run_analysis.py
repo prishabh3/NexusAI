@@ -1,4 +1,5 @@
 """Run analysis use case — dispatches the appropriate agent workflow."""
+
 from __future__ import annotations
 
 import asyncio
@@ -79,11 +80,13 @@ class RunAnalysisUseCase:
         analysis.start()
         await self._analysis_repo.update(analysis)
 
-        await event_bus.publish(DomainEvent(
-            event_type=EventType.ANALYSIS_STARTED,
-            payload={"analysis_id": str(analysis.id), "type": command.analysis_type},
-            aggregate_id=analysis.id,
-        ))
+        await event_bus.publish(
+            DomainEvent(
+                event_type=EventType.ANALYSIS_STARTED,
+                payload={"analysis_id": str(analysis.id), "type": command.analysis_type},
+                aggregate_id=analysis.id,
+            )
+        )
 
         try:
             result = await self._dispatch(analysis, dataset, table_name, on_step)
@@ -92,11 +95,13 @@ class RunAnalysisUseCase:
             await self._analysis_repo.update(analysis)
             await self._dataset_repo.update(dataset)
 
-            await event_bus.publish(DomainEvent(
-                event_type=EventType.ANALYSIS_COMPLETED,
-                payload={"analysis_id": str(analysis.id)},
-                aggregate_id=analysis.id,
-            ))
+            await event_bus.publish(
+                DomainEvent(
+                    event_type=EventType.ANALYSIS_COMPLETED,
+                    payload={"analysis_id": str(analysis.id)},
+                    aggregate_id=analysis.id,
+                )
+            )
 
             return analysis
 
@@ -104,11 +109,13 @@ class RunAnalysisUseCase:
             logger.exception("Analysis %s failed: %s", analysis.id, exc)
             analysis.fail(str(exc))
             await self._analysis_repo.update(analysis)
-            await event_bus.publish(DomainEvent(
-                event_type=EventType.ANALYSIS_FAILED,
-                payload={"analysis_id": str(analysis.id), "error": str(exc)},
-                aggregate_id=analysis.id,
-            ))
+            await event_bus.publish(
+                DomainEvent(
+                    event_type=EventType.ANALYSIS_FAILED,
+                    payload={"analysis_id": str(analysis.id), "error": str(exc)},
+                    aggregate_id=analysis.id,
+                )
+            )
             raise
 
     async def _ensure_table_registered(self, dataset: Dataset, table_name: str) -> None:
@@ -120,9 +127,13 @@ class RunAnalysisUseCase:
         except Exception:
             if dataset.file_path and dataset.file_format:
                 logger.info("Re-registering DuckDB table %s from %s", table_name, dataset.file_path)
-                await self._engine.register_dataset(table_name, dataset.file_path, dataset.file_format)
+                await self._engine.register_dataset(
+                    table_name, dataset.file_path, dataset.file_format
+                )
             else:
-                raise DatasetNotReadyError(f"Dataset {dataset.id} has no file_path or file_format")
+                raise DatasetNotReadyError(
+                    f"Dataset {dataset.id} has no file_path or file_format"
+                ) from None
 
     async def _dispatch(
         self,
@@ -171,11 +182,13 @@ class RunAnalysisUseCase:
         loop = asyncio.get_event_loop()
         anomalies = await loop.run_in_executor(None, detector.detect, df)
 
-        await event_bus.publish(DomainEvent(
-            event_type=EventType.ANOMALY_DETECTED,
-            payload={"analysis_id": str(analysis.id), "count": len(anomalies)},
-            aggregate_id=analysis.id,
-        ))
+        await event_bus.publish(
+            DomainEvent(
+                event_type=EventType.ANOMALY_DETECTED,
+                payload={"analysis_id": str(analysis.id), "count": len(anomalies)},
+                aggregate_id=analysis.id,
+            )
+        )
 
         ml_result = MLResult(
             model_name="Ensemble(IsolationForest+LOF+DBSCAN)",
@@ -228,11 +241,13 @@ class RunAnalysisUseCase:
         historical = sum(1 for p in forecast_points if not p.is_forecast)
         future_points = sum(1 for p in forecast_points if p.is_forecast)
 
-        await event_bus.publish(DomainEvent(
-            event_type=EventType.FORECAST_COMPUTED,
-            payload={"analysis_id": str(analysis.id), "periods": future_points},
-            aggregate_id=analysis.id,
-        ))
+        await event_bus.publish(
+            DomainEvent(
+                event_type=EventType.FORECAST_COMPUTED,
+                payload={"analysis_id": str(analysis.id), "periods": future_points},
+                aggregate_id=analysis.id,
+            )
+        )
 
         ml_result = MLResult(
             model_name="Prophet+XGBoost",

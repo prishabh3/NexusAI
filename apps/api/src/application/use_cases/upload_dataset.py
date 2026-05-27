@@ -1,4 +1,5 @@
 """Upload dataset use case — orchestrates file storage, profiling, and DuckDB registration."""
+
 from __future__ import annotations
 
 import logging
@@ -51,7 +52,9 @@ class UploadDatasetUseCase:
         self._profiler = profiler
 
     async def execute(self, command: UploadDatasetCommand) -> UploadDatasetResult:
-        if len(command.file_content) > self._storage._base.__class__.__mro__[0].__dict__.get("_limit", 2**30):
+        if len(command.file_content) > self._storage._base.__class__.__mro__[0].__dict__.get(
+            "_limit", 2**30
+        ):
             pass  # size checked in handler
 
         file_path, _content_hash = await self._storage.save_upload(
@@ -71,11 +74,13 @@ class UploadDatasetUseCase:
         )
         dataset = await self._repo.save(dataset)
 
-        await event_bus.publish(DomainEvent(
-            event_type=EventType.DATASET_UPLOADED,
-            payload={"dataset_id": str(dataset.id), "file_path": file_path},
-            aggregate_id=dataset.id,
-        ))
+        await event_bus.publish(
+            DomainEvent(
+                event_type=EventType.DATASET_UPLOADED,
+                payload={"dataset_id": str(dataset.id), "file_path": file_path},
+                aggregate_id=dataset.id,
+            )
+        )
 
         try:
             schema = await self._profile_dataset(dataset, file_path)
@@ -88,11 +93,13 @@ class UploadDatasetUseCase:
             dataset.metadata["duckdb_table"] = table_name
             await self._repo.update(dataset)
 
-            await event_bus.publish(DomainEvent(
-                event_type=EventType.DATASET_PROFILED,
-                payload={"dataset_id": str(dataset.id), "table": table_name},
-                aggregate_id=dataset.id,
-            ))
+            await event_bus.publish(
+                DomainEvent(
+                    event_type=EventType.DATASET_PROFILED,
+                    payload={"dataset_id": str(dataset.id), "table": table_name},
+                    aggregate_id=dataset.id,
+                )
+            )
 
             return UploadDatasetResult(
                 dataset_id=dataset.id,
@@ -107,11 +114,13 @@ class UploadDatasetUseCase:
             logger.exception("Dataset profiling failed for %s: %s", dataset.id, exc)
             dataset.mark_failed()
             await self._repo.update(dataset)
-            await event_bus.publish(DomainEvent(
-                event_type=EventType.DATASET_FAILED,
-                payload={"dataset_id": str(dataset.id), "error": str(exc)},
-                aggregate_id=dataset.id,
-            ))
+            await event_bus.publish(
+                DomainEvent(
+                    event_type=EventType.DATASET_FAILED,
+                    payload={"dataset_id": str(dataset.id), "error": str(exc)},
+                    aggregate_id=dataset.id,
+                )
+            )
             raise
 
     async def _profile_dataset(self, dataset: Dataset, file_path: str) -> DatasetSchema:
@@ -120,8 +129,7 @@ class UploadDatasetUseCase:
         size_bytes = self._storage.get_file_size(file_path)
 
         columns = [
-            self._profiler.profile_column(col, df[col].tolist(), row_count)
-            for col in df.columns
+            self._profiler.profile_column(col, df[col].tolist(), row_count) for col in df.columns
         ]
 
         quality_score = self._profiler.compute_data_quality_score(columns, row_count)
@@ -137,8 +145,7 @@ class UploadDatasetUseCase:
                 col: {
                     other: round(v, 4)
                     for other in numeric_cols
-                    if other != col
-                    and not math.isnan(v := float(corr_matrix.loc[col, other]))
+                    if other != col and not math.isnan(v := float(corr_matrix.loc[col, other]))
                 }
                 for col in numeric_cols
             }

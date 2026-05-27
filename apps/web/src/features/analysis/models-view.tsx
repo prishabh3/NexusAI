@@ -45,7 +45,7 @@ export function ModelsView() {
         <BarChart3 className="mx-auto h-10 w-10 text-muted-foreground/40" />
         <p className="mt-3 text-sm font-medium text-muted-foreground">No ML models trained yet</p>
         <p className="mt-1 text-xs text-muted-foreground/60">
-          Ask the agent to "classify" or "predict" a column in the Query tab.
+          Ask the agent to &quot;classify&quot; or &quot;predict&quot; a column in the Query tab.
         </p>
       </div>
     );

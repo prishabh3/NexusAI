@@ -1,4 +1,5 @@
 """In-process async event bus for decoupled internal communication."""
+
 from __future__ import annotations
 
 import asyncio

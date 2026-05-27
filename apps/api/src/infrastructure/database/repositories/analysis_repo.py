@@ -1,4 +1,5 @@
 """SQLAlchemy implementation of AnalysisRepository."""
+
 from __future__ import annotations
 
 import uuid
@@ -106,7 +107,9 @@ class SqlAlchemyAnalysisRepository(AnalysisRepository):
         )
         return [self._to_entity(m) for m in result.scalars().all()]
 
-    async def find_by_type(self, dataset_id: uuid.UUID, analysis_type: AnalysisType) -> list[Analysis]:
+    async def find_by_type(
+        self, dataset_id: uuid.UUID, analysis_type: AnalysisType
+    ) -> list[Analysis]:
         result = await self._session.execute(
             select(AnalysisModel)
             .where(
@@ -127,7 +130,9 @@ class SqlAlchemyAnalysisRepository(AnalysisRepository):
             for ml in model.result.get("ml_results", []):
                 fps = [ForecastPoint(**fp) for fp in ml.get("forecast_points", [])]
                 anomalies = [AnomalyRecord(**a) for a in ml.get("anomalies", [])]
-                ml_results.append(MLResult(**{**ml, "forecast_points": fps, "anomalies": anomalies}))
+                ml_results.append(
+                    MLResult(**{**ml, "forecast_points": fps, "anomalies": anomalies})
+                )
             sql_execs = [SQLExecution(**s) for s in model.result.get("sql_executions", [])]
             result = AnalysisResult(
                 **{

@@ -1,8 +1,14 @@
 """Domain service for dataset profiling logic — pure business rules, no I/O."""
+
 from __future__ import annotations
 
 import math
 from typing import Any
+
+from src.domain.entities.dataset import (
+    ColumnProfile,
+    ColumnType,
+)
 
 
 def _is_null(v: Any) -> bool:
@@ -12,11 +18,6 @@ def _is_null(v: Any) -> bool:
     if isinstance(v, float) and math.isnan(v):
         return True
     return False
-
-from src.domain.entities.dataset import (
-    ColumnProfile,
-    ColumnType,
-)
 
 
 class DatasetProfiler:
@@ -53,6 +54,7 @@ class DatasetProfiler:
 
         if all(isinstance(v, str) for v in sample):
             from datetime import datetime
+
             for pattern in self.DATETIME_PATTERNS:
                 parsed = 0
                 for v in sample[:20]:
@@ -85,6 +87,7 @@ class DatasetProfiler:
         top_values: list[tuple[Any, int]] = []
         if dtype == ColumnType.STRING or cardinality < 0.5:
             from collections import Counter
+
             counter = Counter(non_null)
             top_values = counter.most_common(10)
 
@@ -141,11 +144,10 @@ class DatasetProfiler:
             return 0.0
 
         completeness = 1.0 - (sum(c.null_pct for c in columns) / len(columns))
-        consistency = sum(
-            1.0 for c in columns if c.dtype != ColumnType.UNKNOWN
-        ) / len(columns)
+        consistency = sum(1.0 for c in columns if c.dtype != ColumnType.UNKNOWN) / len(columns)
         outlier_penalty = sum(
-            min(1.0, abs(c.skewness or 0) / 5.0) for c in columns
+            min(1.0, abs(c.skewness or 0) / 5.0)
+            for c in columns
             if c.dtype in (ColumnType.INTEGER, ColumnType.FLOAT)
         )
         outlier_factor = max(0.0, 1.0 - outlier_penalty / len(columns))

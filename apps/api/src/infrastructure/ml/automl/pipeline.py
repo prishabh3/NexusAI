@@ -1,4 +1,5 @@
 """AutoML pipeline — problem inference, model benchmarking, and selection."""
+
 from __future__ import annotations
 
 import logging
@@ -61,7 +62,11 @@ class AutoMLPipeline:
     def infer_problem_type(self, y: pd.Series) -> str:
         n_unique = y.nunique()
         dtype = y.dtype
-        if dtype.kind in ("O", "U", "S") or dtype.name == "category" or n_unique <= self.CLASSIFICATION_THRESHOLD:
+        if (
+            dtype.kind in ("O", "U", "S")
+            or dtype.name == "category"
+            or n_unique <= self.CLASSIFICATION_THRESHOLD
+        ):
             return "classification"
         return "regression"
 
@@ -74,7 +79,9 @@ class AutoMLPipeline:
     ) -> MLResult:
         X, y, feature_names = self._prepare_data(df, target_column, feature_columns)
         problem = problem_type or self.infer_problem_type(y)
-        logger.info("AutoML running %s on %d rows, %d features", problem, len(X), len(feature_names))
+        logger.info(
+            "AutoML running %s on %d rows, %d features", problem, len(X), len(feature_names)
+        )
 
         X_train, X_test, y_train, y_test = train_test_split(
             X, y, test_size=self.config.test_size, random_state=self.config.random_state
@@ -94,7 +101,9 @@ class AutoMLPipeline:
 
         for name, model in candidates[: self.config.max_models]:
             if time.time() > deadline:
-                logger.warning("AutoML time budget exceeded, stopping at %d models", len(benchmarks))
+                logger.warning(
+                    "AutoML time budget exceeded, stopping at %d models", len(benchmarks)
+                )
                 break
 
             try:
@@ -160,13 +169,28 @@ class AutoMLPipeline:
     def _get_candidate_models(self, problem: str) -> list[tuple[str, Any]]:
         if problem == "classification":
             return [
-                ("XGBClassifier", XGBClassifier(n_estimators=200, max_depth=6, random_state=42, eval_metric="logloss", verbosity=0)),
-                ("RandomForest", RandomForestClassifier(n_estimators=200, random_state=42, n_jobs=-1)),
+                (
+                    "XGBClassifier",
+                    XGBClassifier(
+                        n_estimators=200,
+                        max_depth=6,
+                        random_state=42,
+                        eval_metric="logloss",
+                        verbosity=0,
+                    ),
+                ),
+                (
+                    "RandomForest",
+                    RandomForestClassifier(n_estimators=200, random_state=42, n_jobs=-1),
+                ),
                 ("GradientBoosting", GradientBoostingClassifier(n_estimators=100, random_state=42)),
                 ("LogisticRegression", LogisticRegression(max_iter=500, random_state=42)),
             ]
         return [
-            ("XGBRegressor", XGBRegressor(n_estimators=200, max_depth=6, random_state=42, verbosity=0)),
+            (
+                "XGBRegressor",
+                XGBRegressor(n_estimators=200, max_depth=6, random_state=42, verbosity=0),
+            ),
             ("RandomForest", RandomForestRegressor(n_estimators=200, random_state=42, n_jobs=-1)),
             ("GradientBoosting", GradientBoostingRegressor(n_estimators=100, random_state=42)),
             ("Ridge", Ridge(random_state=42)),
@@ -193,7 +217,9 @@ class AutoMLPipeline:
         metrics: dict[str, float] = {}
         if problem == "classification":
             metrics["accuracy"] = round(float(accuracy_score(y_test, y_pred)), 4)
-            metrics["f1_weighted"] = round(float(f1_score(y_test, y_pred, average="weighted", zero_division=0)), 4)
+            metrics["f1_weighted"] = round(
+                float(f1_score(y_test, y_pred, average="weighted", zero_division=0)), 4
+            )
             try:
                 y_proba = model.predict_proba(X_test)
                 if y_proba.shape[1] == 2:
@@ -205,7 +231,9 @@ class AutoMLPipeline:
             metrics["mae"] = round(float(mean_absolute_error(y_test, y_pred)), 4)
             metrics["rmse"] = round(float(np.sqrt(mean_squared_error(y_test, y_pred))), 4)
 
-        return ModelBenchmark(name=name, metrics=metrics, fit_time_seconds=fit_time, predict_time_seconds=predict_time), model
+        return ModelBenchmark(
+            name=name, metrics=metrics, fit_time_seconds=fit_time, predict_time_seconds=predict_time
+        ), model
 
     @staticmethod
     def _primary_metric(problem: str) -> str:
@@ -215,25 +243,34 @@ class AutoMLPipeline:
     def _compute_feature_importance(model: Any, feature_names: list[str]) -> dict[str, float]:
         if hasattr(model, "feature_importances_"):
             importances = model.feature_importances_
-            pairs = sorted(zip(feature_names, importances, strict=False), key=lambda x: x[1], reverse=True)
+            pairs = sorted(
+                zip(feature_names, importances, strict=False), key=lambda x: x[1], reverse=True
+            )
             return {name: round(float(imp), 6) for name, imp in pairs}
         if hasattr(model, "coef_"):
             coefs = np.abs(model.coef_.flatten() if model.coef_.ndim > 1 else model.coef_)
-            pairs = sorted(zip(feature_names, coefs, strict=False), key=lambda x: x[1], reverse=True)
+            pairs = sorted(
+                zip(feature_names, coefs, strict=False), key=lambda x: x[1], reverse=True
+            )
             return {name: round(float(c), 6) for name, c in pairs}
         return {}
 
     @staticmethod
-    def _compute_shap(model: Any, X: np.ndarray, feature_names: list[str]) -> dict[str, list[float]]:
+    def _compute_shap(
+        model: Any, X: np.ndarray, feature_names: list[str]
+    ) -> dict[str, list[float]]:
         try:
             import shap
-            sample = X[:min(200, len(X))]
+
+            sample = X[: min(200, len(X))]
             explainer = shap.TreeExplainer(model)
             shap_vals = explainer.shap_values(sample)
             if isinstance(shap_vals, list):
                 shap_vals = shap_vals[1]
             mean_abs = np.abs(shap_vals).mean(axis=0)
-            return {name: round(float(v), 6) for name, v in zip(feature_names, mean_abs, strict=False)}
+            return {
+                name: round(float(v), 6) for name, v in zip(feature_names, mean_abs, strict=False)
+            }
         except Exception as exc:
             logger.warning("SHAP computation failed: %s", exc)
             return {}

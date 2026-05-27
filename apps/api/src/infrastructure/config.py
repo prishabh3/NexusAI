@@ -40,9 +40,7 @@ class Settings(BaseSettings):
     # Storage
     storage_path: str = "./data"
     storage_max_upload_mb: int = 500
-    storage_allowed_extensions: list[str] = Field(
-        default=["csv", "parquet", "json", "jsonl"]
-    )
+    storage_allowed_extensions: list[str] = Field(default=["csv", "parquet", "json", "jsonl"])
 
     # ML
     ml_model_cache_path: str = "./models"

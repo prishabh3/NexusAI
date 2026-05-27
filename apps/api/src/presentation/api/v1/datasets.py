@@ -1,4 +1,5 @@
 """Dataset management endpoints."""
+
 from __future__ import annotations
 
 import logging
@@ -89,11 +90,15 @@ async def upload_dataset(
             )
         )
     except ValueError as exc:
-        raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail=str(exc)) from exc
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail=str(exc)
+        ) from exc
 
     dataset = await repo.find_by_id(result.dataset_id)
     if dataset is None:
-        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Dataset lost after creation")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Dataset lost after creation"
+        )
 
     return DatasetDetailResponse(
         **_to_summary(dataset).model_dump(),
@@ -131,7 +136,9 @@ async def get_dataset(
 ) -> DatasetDetailResponse:
     dataset = await repo.find_by_id(dataset_id)
     if dataset is None:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"Dataset {dataset_id} not found")
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail=f"Dataset {dataset_id} not found"
+        )
     return DatasetDetailResponse(
         **_to_summary(dataset).model_dump(),
         schema=dataset.schema,
@@ -146,7 +153,9 @@ async def delete_dataset(
 ) -> None:
     deleted = await repo.delete(dataset_id)
     if not deleted:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"Dataset {dataset_id} not found")
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail=f"Dataset {dataset_id} not found"
+        )
 
 
 @router.get("/{dataset_id}/versions")

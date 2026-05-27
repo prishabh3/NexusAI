@@ -16,7 +16,7 @@ import remarkGfm from "remark-gfm";
 import { useAnalysisStore } from "@/stores/analysis-store";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import { cn, formatDuration } from "@/lib/utils";
+import { cn } from "@/lib/utils";
 import type { AgentStep, AnalysisDetail } from "@/types/dataset";
 import { AgentStepTrace } from "./agent-step-trace";
 

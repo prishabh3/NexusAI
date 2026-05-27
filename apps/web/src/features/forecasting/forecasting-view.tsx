@@ -42,7 +42,7 @@ export function ForecastingView() {
         <TrendingUp className="mx-auto h-10 w-10 text-muted-foreground/40" />
         <p className="mt-3 text-sm font-medium text-muted-foreground">No forecast analyses yet</p>
         <p className="mt-1 text-xs text-muted-foreground/60">
-          Ask the agent to "forecast the next 30 days" in the Query tab.
+          Ask the agent to &quot;forecast the next 30 days&quot; in the Query tab.
         </p>
       </div>
     );

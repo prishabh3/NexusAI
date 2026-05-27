@@ -1,4 +1,5 @@
 """SQLAlchemy implementation of DatasetRepository."""
+
 from __future__ import annotations
 
 import math
@@ -61,13 +62,18 @@ class SqlAlchemyDatasetRepository(DatasetRepository):
 
     async def find_all(self, limit: int = 50, offset: int = 0) -> list[Dataset]:
         result = await self._session.execute(
-            select(DatasetModel).order_by(DatasetModel.created_at.desc()).limit(limit).offset(offset)
+            select(DatasetModel)
+            .order_by(DatasetModel.created_at.desc())
+            .limit(limit)
+            .offset(offset)
         )
         return [self._to_entity(m) for m in result.scalars().all()]
 
     async def find_by_status(self, status: DatasetStatus) -> list[Dataset]:
         result = await self._session.execute(
-            select(DatasetModel).where(DatasetModel.status == status).order_by(DatasetModel.created_at.desc())
+            select(DatasetModel)
+            .where(DatasetModel.status == status)
+            .order_by(DatasetModel.created_at.desc())
         )
         return [self._to_entity(m) for m in result.scalars().all()]
 
@@ -106,7 +112,9 @@ class SqlAlchemyDatasetRepository(DatasetRepository):
             dataset_id=version.dataset_id,
             version_number=version.version_number,
             file_path=version.file_path,
-            schema_snapshot=_sanitize_json(version.schema_snapshot.model_dump()) if version.schema_snapshot else None,
+            schema_snapshot=_sanitize_json(version.schema_snapshot.model_dump())
+            if version.schema_snapshot
+            else None,
             row_count=version.row_count,
             size_bytes=version.size_bytes,
             notes=version.notes,
@@ -125,14 +133,13 @@ class SqlAlchemyDatasetRepository(DatasetRepository):
 
     async def count(self) -> int:
         from sqlalchemy import func
+
         result = await self._session.execute(select(func.count()).select_from(DatasetModel))
         return result.scalar_one()
 
     async def search_by_name(self, query: str, limit: int = 20) -> list[Dataset]:
         result = await self._session.execute(
-            select(DatasetModel)
-            .where(DatasetModel.name.ilike(f"%{query}%"))
-            .limit(limit)
+            select(DatasetModel).where(DatasetModel.name.ilike(f"%{query}%")).limit(limit)
         )
         return [self._to_entity(m) for m in result.scalars().all()]
 

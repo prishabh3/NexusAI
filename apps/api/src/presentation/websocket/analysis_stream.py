@@ -1,4 +1,5 @@
 """WebSocket endpoint for real-time analysis step streaming."""
+
 from __future__ import annotations
 
 import asyncio
@@ -62,18 +63,20 @@ async def stream_analysis(
 
             async def on_step(step: AgentStep) -> None:
                 try:
-                    await websocket.send_json({
-                        "event": "step",
-                        "data": {
-                            "step_number": step.step_number,
-                            "agent": step.agent_name,
-                            "action": step.action,
-                            "tool": step.tool_name,
-                            "reasoning": step.reasoning[:500] if step.reasoning else None,
-                            "sql_count": len(step.sql_executions),
-                            "duration_ms": step.duration_ms,
-                        },
-                    })
+                    await websocket.send_json(
+                        {
+                            "event": "step",
+                            "data": {
+                                "step_number": step.step_number,
+                                "agent": step.agent_name,
+                                "action": step.action,
+                                "tool": step.tool_name,
+                                "reasoning": step.reasoning[:500] if step.reasoning else None,
+                                "sql_count": len(step.sql_executions),
+                                "duration_ms": step.duration_ms,
+                            },
+                        }
+                    )
                 except Exception:
                     pass
 
@@ -91,22 +94,28 @@ async def stream_analysis(
             await session.commit()
 
             stop_heartbeat.set()
-            await websocket.send_json({
-                "event": "completed",
-                "data": {
-                    "analysis_id": str(analysis.id),
-                    "status": analysis.status,
-                    "summary": analysis.result.summary if analysis.result else None,
-                    "finding_count": len(analysis.result.key_findings) if analysis.result else 0,
-                    "step_count": len(analysis.agent_steps),
-                    "duration_seconds": analysis.duration_seconds,
-                },
-            })
+            await websocket.send_json(
+                {
+                    "event": "completed",
+                    "data": {
+                        "analysis_id": str(analysis.id),
+                        "status": analysis.status,
+                        "summary": analysis.result.summary if analysis.result else None,
+                        "finding_count": len(analysis.result.key_findings)
+                        if analysis.result
+                        else 0,
+                        "step_count": len(analysis.agent_steps),
+                        "duration_seconds": analysis.duration_seconds,
+                    },
+                }
+            )
 
         except WebSocketDisconnect:
             logger.info("WebSocket disconnected for dataset %s", dataset_id)
         except json.JSONDecodeError:
-            await websocket.send_json({"event": "error", "data": {"message": "Invalid JSON payload"}})
+            await websocket.send_json(
+                {"event": "error", "data": {"message": "Invalid JSON payload"}}
+            )
         except Exception as exc:
             logger.exception("WebSocket analysis error: %s", exc)
             try:

@@ -1,4 +1,5 @@
 """FastAPI dependency injection wiring."""
+
 from __future__ import annotations
 
 from functools import lru_cache
@@ -71,5 +72,3 @@ async def get_run_analysis_use_case(
         analysis_repo=analysis_repo,
         duckdb_engine=engine,
     )
-
-

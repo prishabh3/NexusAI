@@ -1,4 +1,5 @@
 """Coordinator agent — orchestrates the multi-agent analytical workflow."""
+
 from __future__ import annotations
 
 import json
@@ -62,7 +63,9 @@ class OllamaClient:
             "stream": True,
             "options": {"temperature": temperature, "num_ctx": 4096},
         }
-        async with self._client.stream("POST", f"{self._base_url}/api/chat", json=payload) as response:
+        async with self._client.stream(
+            "POST", f"{self._base_url}/api/chat", json=payload
+        ) as response:
             response.raise_for_status()
             async for line in response.aiter_lines():
                 if line:
@@ -125,8 +128,14 @@ class AnalysisCoordinator:
                     "parameters": {
                         "type": "object",
                         "properties": {
-                            "query": {"type": "string", "description": "DuckDB SQL query to execute"},
-                            "intent": {"type": "string", "description": "Natural language description of what this query investigates"},
+                            "query": {
+                                "type": "string",
+                                "description": "DuckDB SQL query to execute",
+                            },
+                            "intent": {
+                                "type": "string",
+                                "description": "Natural language description of what this query investigates",
+                            },
                         },
                         "required": ["query"],
                     },
@@ -151,7 +160,10 @@ class AnalysisCoordinator:
         on_step: Any | None = None,
     ) -> AnalysisResult:
         system_msg = COORDINATOR_SYSTEM_PROMPT.format(table_name=self._table_name)
-        user_query = analysis.user_query or "Perform comprehensive exploratory data analysis on this dataset."
+        user_query = (
+            analysis.user_query
+            or "Perform comprehensive exploratory data analysis on this dataset."
+        )
 
         messages: list[dict[str, Any]] = [
             {"role": "system", "content": system_msg},
@@ -196,11 +208,13 @@ class AnalysisCoordinator:
                     tool_output = await self._dispatch_tool(tool_name, tool_input)
                     _tool_duration = (time.perf_counter() - t_tool) * 1000
 
-                    messages.append({
-                        "role": "tool",
-                        "content": tool_output,
-                        "name": tool_name,
-                    })
+                    messages.append(
+                        {
+                            "role": "tool",
+                            "content": tool_output,
+                            "name": tool_name,
+                        }
+                    )
 
                     if tool_name == "execute_sql":
                         output_data = json.loads(tool_output)
@@ -246,10 +260,12 @@ class AnalysisCoordinator:
         # (no tools — model must write text)
         if final_text == "Analysis complete." and sql_executions:
             logger.info("Forcing synthesis call after %d tool iterations", iterations)
-            messages.append({
-                "role": "user",
-                "content": "Based on the query results above, write your analysis report now.",
-            })
+            messages.append(
+                {
+                    "role": "user",
+                    "content": "Based on the query results above, write your analysis report now.",
+                }
+            )
             try:
                 synth_response = await self._ollama.chat(
                     messages=messages,
@@ -270,7 +286,7 @@ class AnalysisCoordinator:
             key_findings=key_findings,
             sql_executions=sql_executions,
             confidence_score=confidence,
-            evidence_references=[f"SQL query #{i+1}" for i in range(len(sql_executions))],
+            evidence_references=[f"SQL query #{i + 1}" for i in range(len(sql_executions))],
         )
 
     @staticmethod

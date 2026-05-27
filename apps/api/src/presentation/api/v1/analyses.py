@@ -1,4 +1,5 @@
 """Analysis execution and retrieval endpoints."""
+
 from __future__ import annotations
 
 import logging
@@ -72,7 +73,9 @@ async def run_analysis(
         return _to_summary(analysis)
     except Exception as exc:
         logger.exception("Analysis execution failed: %s", exc)
-        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(exc)) from exc
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(exc)
+        ) from exc
 
 
 @router.get("/recent", response_model=list[AnalysisSummaryResponse])
@@ -102,7 +105,9 @@ async def get_analysis(
 ) -> AnalysisDetailResponse:
     analysis = await repo.find_by_id(analysis_id)
     if analysis is None:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"Analysis {analysis_id} not found")
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail=f"Analysis {analysis_id} not found"
+        )
     return AnalysisDetailResponse(
         **_to_summary(analysis).model_dump(),
         agent_steps=[step.model_dump() for step in analysis.agent_steps],

@@ -61,7 +61,9 @@ class AgentRun(BaseModel):
         self.iteration_count += 1
 
     def add_message(self, role: str, content: str) -> None:
-        self.messages.append({"role": role, "content": content, "timestamp": datetime.utcnow().isoformat()})
+        self.messages.append(
+            {"role": role, "content": content, "timestamp": datetime.utcnow().isoformat()}
+        )
 
     @property
     def has_exceeded_limit(self) -> bool:

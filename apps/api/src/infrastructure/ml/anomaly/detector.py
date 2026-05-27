@@ -1,4 +1,5 @@
 """Anomaly detection pipeline using Isolation Forest, LOF, and DBSCAN."""
+
 from __future__ import annotations
 
 import logging
@@ -142,7 +143,9 @@ class AnomalyDetector:
             col_std = reference[col].std()
             z_score = (row[col] - col_mean) / (col_std + 1e-9)
             direction = "above" if row[col] > col_mean else "below"
-            parts.append(f"{col} is {abs(z_score):.1f} std {direction} average ({row[col]:.2f} vs {col_mean:.2f})")
+            parts.append(
+                f"{col} is {abs(z_score):.1f} std {direction} average ({row[col]:.2f} vs {col_mean:.2f})"
+            )
         return "; ".join(parts) if parts else "Statistical outlier across multiple dimensions"
 
     @staticmethod

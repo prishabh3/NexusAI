@@ -1,4 +1,5 @@
 """SQL generation and execution tool for the AI agent."""
+
 from __future__ import annotations
 
 import logging

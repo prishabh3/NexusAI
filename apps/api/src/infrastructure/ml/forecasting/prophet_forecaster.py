@@ -1,4 +1,5 @@
 """Time-series forecasting with Prophet and XGBoost fallback."""
+
 from __future__ import annotations
 
 import logging
@@ -50,7 +51,9 @@ class ProphetForecaster:
         prophet_df = prophet_df.dropna().sort_values("ds")
 
         if len(prophet_df) < 10:
-            raise ValueError(f"Insufficient data for forecasting: {len(prophet_df)} rows (minimum 10)")
+            raise ValueError(
+                f"Insufficient data for forecasting: {len(prophet_df)} rows (minimum 10)"
+            )
 
         model = Prophet(
             seasonality_mode=self.config.seasonality_mode,
@@ -140,12 +143,14 @@ class ProphetForecaster:
             freq=self.config.frequency,
         )
 
-        future_features = np.column_stack([
-            [d.toordinal() for d in future_dates],
-            [d.dayofweek for d in future_dates],
-            [d.month for d in future_dates],
-            [d.quarter for d in future_dates],
-        ])
+        future_features = np.column_stack(
+            [
+                [d.toordinal() for d in future_dates],
+                [d.dayofweek for d in future_dates],
+                [d.month for d in future_dates],
+                [d.quarter for d in future_dates],
+            ]
+        )
 
         predictions = model.predict(future_features)
         residual_std = float(np.std(y - model.predict(X)))
@@ -155,21 +160,25 @@ class ProphetForecaster:
         if self.config.include_history:
             history_preds = model.predict(X)
             for i, row in enumerate(ts.itertuples()):
-                points.append(ForecastPoint(
-                    timestamp=getattr(row, date_column),
-                    value=round(float(getattr(row, value_column)), 4),
-                    lower_bound=round(float(history_preds[i]) - z * residual_std, 4),
-                    upper_bound=round(float(history_preds[i]) + z * residual_std, 4),
-                    is_forecast=False,
-                ))
+                points.append(
+                    ForecastPoint(
+                        timestamp=getattr(row, date_column),
+                        value=round(float(getattr(row, value_column)), 4),
+                        lower_bound=round(float(history_preds[i]) - z * residual_std, 4),
+                        upper_bound=round(float(history_preds[i]) + z * residual_std, 4),
+                        is_forecast=False,
+                    )
+                )
 
         for date, pred in zip(future_dates, predictions, strict=False):
-            points.append(ForecastPoint(
-                timestamp=date.to_pydatetime(),
-                value=round(float(pred), 4),
-                lower_bound=round(float(pred) - z * residual_std, 4),
-                upper_bound=round(float(pred) + z * residual_std, 4),
-                is_forecast=True,
-            ))
+            points.append(
+                ForecastPoint(
+                    timestamp=date.to_pydatetime(),
+                    value=round(float(pred), 4),
+                    lower_bound=round(float(pred) - z * residual_std, 4),
+                    upper_bound=round(float(pred) + z * residual_std, 4),
+                    is_forecast=True,
+                )
+            )
 
         return points
