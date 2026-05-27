@@ -5,10 +5,11 @@ import { AnalysisDetailView } from "@/features/analysis/analysis-detail-view";
 export const metadata = { title: "Analysis Detail — NexusAI" };
 
 interface Props {
-  params: { id: string };
+  params: Promise<{ id: string }>;
 }
 
-export default function AnalysisDetailPage({ params }: Props) {
+export default async function AnalysisDetailPage({ params }: Props) {
+  const { id } = await params;
   return (
     <div className="space-y-6">
       <PageHeader
@@ -18,7 +19,7 @@ export default function AnalysisDetailPage({ params }: Props) {
         backLabel="All Analyses"
       />
       <Suspense fallback={<DetailSkeleton />}>
-        <AnalysisDetailView analysisId={params.id} />
+        <AnalysisDetailView analysisId={id} />
       </Suspense>
     </div>
   );
