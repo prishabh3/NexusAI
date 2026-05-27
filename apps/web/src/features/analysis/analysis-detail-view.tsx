@@ -97,7 +97,11 @@ export function AnalysisDetailView({ analysisId }: Props) {
       {analysis.agent_steps.length > 0 && (
         <section>
           <h3 className="mb-3 text-sm font-medium text-foreground">Agent Trace</h3>
-          <AgentStepTrace steps={analysis.agent_steps} />
+          <div className="space-y-1">
+            {analysis.agent_steps.map((step, i) => (
+              <AgentStepTrace key={i} step={step} />
+            ))}
+          </div>
         </section>
       )}
 

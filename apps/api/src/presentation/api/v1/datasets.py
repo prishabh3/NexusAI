@@ -112,6 +112,18 @@ async def list_datasets(
     return [_to_summary(d) for d in datasets]
 
 
+# /search must be registered before /{dataset_id} so FastAPI doesn't try to
+# parse the literal string "search" as a UUID path parameter.
+@router.get("/search", response_model=list[DatasetSummaryResponse])
+async def search_datasets(
+    q: str = Query(min_length=2),
+    limit: int = Query(default=20, le=50),
+    repo: DatasetRepository = Depends(get_dataset_repo),
+) -> list[DatasetSummaryResponse]:
+    datasets = await repo.search_by_name(q, limit=limit)
+    return [_to_summary(d) for d in datasets]
+
+
 @router.get("/{dataset_id}", response_model=DatasetDetailResponse)
 async def get_dataset(
     dataset_id: uuid.UUID,
@@ -147,13 +159,3 @@ async def list_versions(
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Dataset not found")
     versions = await repo.find_versions(dataset_id)
     return [v.model_dump() for v in versions]
-
-
-@router.get("/search", response_model=list[DatasetSummaryResponse])
-async def search_datasets(
-    q: str = Query(min_length=2),
-    limit: int = Query(default=20, le=50),
-    repo: DatasetRepository = Depends(get_dataset_repo),
-) -> list[DatasetSummaryResponse]:
-    datasets = await repo.search_by_name(q, limit=limit)
-    return [_to_summary(d) for d in datasets]

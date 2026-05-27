@@ -17,6 +17,12 @@ export const analysesApi = {
     return data;
   },
 
+  // Alias kept for callers that use the older naming convention
+  recent: async (limit = 20): Promise<Analysis[]> => {
+    const { data } = await apiClient.get("/analyses/recent", { params: { limit } });
+    return data;
+  },
+
   create: async (datasetId: string, query: string, analysisType = "custom_query"): Promise<Analysis> => {
     const { data } = await apiClient.post("/analyses", {
       dataset_id: datasetId,

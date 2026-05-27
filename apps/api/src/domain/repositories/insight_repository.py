@@ -25,6 +25,10 @@ class InsightRepository(ABC):
         ...
 
     @abstractmethod
+    async def find_recent(self, limit: int = 50, offset: int = 0) -> list[Insight]:
+        ...
+
+    @abstractmethod
     async def find_by_category(
         self,
         dataset_id: uuid.UUID,

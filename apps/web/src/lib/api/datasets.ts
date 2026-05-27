@@ -40,51 +40,6 @@ export const datasetsApi = {
   },
 };
 
-export const analysesApi = {
-  run: async (payload: {
-    dataset_id: string;
-    analysis_type: string;
-    user_query?: string;
-    configuration?: Record<string, unknown>;
-  }) => {
-    const { data } = await apiClient.post("/analyses", payload);
-    return data;
-  },
-
-  get: async (id: string) => {
-    const { data } = await apiClient.get(`/analyses/${id}`);
-    return data;
-  },
-
-  listForDataset: async (datasetId: string, params?: { limit?: number; offset?: number }) => {
-    const { data } = await apiClient.get(`/analyses/dataset/${datasetId}`, { params });
-    return data;
-  },
-
-  recent: async (limit = 10) => {
-    const { data } = await apiClient.get("/analyses/recent", { params: { limit } });
-    return data;
-  },
-};
-
-export const insightsApi = {
-  listForDataset: async (datasetId: string, params?: { category?: string; limit?: number }) => {
-    const { data } = await apiClient.get(`/insights/dataset/${datasetId}`, { params });
-    return data;
-  },
-
-  get: async (id: string) => {
-    const { data } = await apiClient.get(`/insights/${id}`);
-    return data;
-  },
-
-  verify: async (id: string, notes?: string) => {
-    const { data } = await apiClient.post(`/insights/${id}/verify`, null, { params: { notes } });
-    return data;
-  },
-
-  similar: async (id: string, limit = 5) => {
-    const { data } = await apiClient.get(`/insights/${id}/similar`, { params: { limit } });
-    return data;
-  },
-};
+// Use @/lib/api/analyses and @/lib/api/insights for analysis/insight operations.
+export { analysesApi } from "./analyses";
+export { insightsApi } from "./insights";

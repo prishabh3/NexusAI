@@ -8,10 +8,11 @@ import { cn } from "@/lib/utils";
 import type { Analysis } from "@/types/dataset";
 
 const STATUS_STYLES: Record<Analysis["status"], string> = {
-  pending: "bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400",
+  queued: "bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400",
   running: "bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400",
   completed: "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400",
   failed: "bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400",
+  cancelled: "bg-muted text-muted-foreground",
 };
 
 const TYPE_LABELS: Record<string, string> = {

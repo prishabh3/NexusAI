@@ -66,6 +66,15 @@ class SqlAlchemyInsightRepository(InsightRepository):
         )
         return [self._to_entity(m) for m in result.scalars().all()]
 
+    async def find_recent(self, limit: int = 50, offset: int = 0) -> list[Insight]:
+        result = await self._session.execute(
+            select(InsightModel)
+            .order_by(InsightModel.created_at.desc())
+            .limit(limit)
+            .offset(offset)
+        )
+        return [self._to_entity(m) for m in result.scalars().all()]
+
     async def find_by_category(
         self, dataset_id: uuid.UUID, category: InsightCategory
     ) -> list[Insight]:

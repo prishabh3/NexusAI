@@ -7,6 +7,12 @@ export const insightsApi = {
     return data;
   },
 
+  // Alias for callers that use the older naming convention
+  listForDataset: async (datasetId: string, params?: { category?: string; limit?: number }): Promise<Insight[]> => {
+    const { data } = await apiClient.get(`/insights/dataset/${datasetId}`, { params });
+    return data;
+  },
+
   getById: async (id: string): Promise<Insight> => {
     const { data } = await apiClient.get(`/insights/${id}`);
     return data;

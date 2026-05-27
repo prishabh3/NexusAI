@@ -49,6 +49,16 @@ def _to_response(insight: Insight) -> InsightResponse:
     )
 
 
+@router.get("", response_model=list[InsightResponse])
+async def list_all_insights(
+    limit: int = Query(default=50, le=200),
+    offset: int = Query(default=0, ge=0),
+    repo: InsightRepository = Depends(get_insight_repo),
+) -> list[InsightResponse]:
+    insights = await repo.find_recent(limit=limit, offset=offset)
+    return [_to_response(i) for i in insights]
+
+
 @router.get("/dataset/{dataset_id}", response_model=list[InsightResponse])
 async def list_insights(
     dataset_id: uuid.UUID,

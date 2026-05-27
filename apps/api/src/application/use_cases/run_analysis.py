@@ -1,13 +1,16 @@
 """Run analysis use case — dispatches the appropriate agent workflow."""
 from __future__ import annotations
 
+import asyncio
 import logging
 import uuid
 from dataclasses import dataclass
 from typing import Any, Callable, Coroutine
 
-from src.domain.entities.analysis import Analysis, AnalysisType
-from src.domain.entities.dataset import Dataset
+import pandas as pd
+
+from src.domain.entities.analysis import Analysis, AnalysisResult, AnalysisType, MLResult
+from src.domain.entities.dataset import Dataset, DatasetStatus
 from src.domain.repositories.analysis_repository import AnalysisRepository
 from src.domain.repositories.dataset_repository import DatasetRepository
 from src.infrastructure.ai.agents.coordinator import AnalysisCoordinator
@@ -57,7 +60,7 @@ class RunAnalysisUseCase:
         dataset = await self._dataset_repo.find_by_id(command.dataset_id)
         if dataset is None:
             raise AnalysisNotFoundError(f"Dataset {command.dataset_id} not found")
-        if dataset.status != "ready":
+        if dataset.status != DatasetStatus.READY:
             raise DatasetNotReadyError(f"Dataset {command.dataset_id} is not ready (status: {dataset.status})")
 
         table_name = dataset.metadata.get("duckdb_table", f"ds_{dataset.id.hex[:12]}")
@@ -139,19 +142,13 @@ class RunAnalysisUseCase:
 
         return await coordinator.run_analysis(analysis, on_step=on_step)
 
-    async def _run_anomaly_detection(self, analysis: Analysis, table_name: str) -> Any:
-        import asyncio
-        import pandas as pd
-        from src.domain.entities.analysis import AnalysisResult, MLResult
-
+    async def _run_anomaly_detection(self, analysis: Analysis, table_name: str) -> AnalysisResult:
         result = await self._engine.execute_query(f"SELECT * FROM {table_name} LIMIT 50000")
         if not result.result_preview:
-            from src.domain.entities.analysis import AnalysisResult
             return AnalysisResult(summary="No data available for anomaly detection.", confidence_score=0.0)
 
         df = pd.DataFrame(result.result_preview)
         detector = AnomalyDetector()
-
         loop = asyncio.get_event_loop()
         anomalies = await loop.run_in_executor(None, detector.detect, df)
 
@@ -168,8 +165,6 @@ class RunAnalysisUseCase:
             anomalies=anomalies,
             natural_language_summary=f"Detected {len(anomalies)} anomalies ({len(anomalies)/len(df)*100:.1f}% of {len(df)} rows) using ensemble detection.",
         )
-
-        from src.domain.entities.analysis import AnalysisResult
         return AnalysisResult(
             summary=ml_result.natural_language_summary,
             key_findings=[f"{len(anomalies)} anomalies detected across {len(df)} rows"],
@@ -177,17 +172,12 @@ class RunAnalysisUseCase:
             confidence_score=0.82,
         )
 
-    async def _run_forecasting(self, analysis: Analysis, dataset: Dataset, table_name: str) -> Any:
-        import asyncio
-        import pandas as pd
-        from src.domain.entities.analysis import AnalysisResult, MLResult
-
+    async def _run_forecasting(self, analysis: Analysis, dataset: Dataset, table_name: str) -> AnalysisResult:
         config = analysis.configuration
         time_col = config.get("time_column") or (dataset.schema.inferred_time_column if dataset.schema else None)
         value_col = config.get("value_column") or (dataset.schema.inferred_target_column if dataset.schema else None)
 
         if not time_col or not value_col:
-            from src.domain.entities.analysis import AnalysisResult
             return AnalysisResult(
                 summary="Forecasting requires time_column and value_column in configuration.",
                 confidence_score=0.0,
@@ -198,20 +188,17 @@ class RunAnalysisUseCase:
         )
         df = pd.DataFrame(result.result_preview)
         forecaster = ProphetForecaster()
-
         loop = asyncio.get_event_loop()
-        forecast_points = await loop.run_in_executor(
-            None, forecaster.fit_predict, df, time_col, value_col
-        )
-
-        await event_bus.publish(DomainEvent(
-            event_type=EventType.FORECAST_COMPUTED,
-            payload={"analysis_id": str(analysis.id), "periods": len([p for p in forecast_points if p.is_forecast])},
-            aggregate_id=analysis.id,
-        ))
+        forecast_points = await loop.run_in_executor(None, forecaster.fit_predict, df, time_col, value_col)
 
         historical = sum(1 for p in forecast_points if not p.is_forecast)
         future_points = sum(1 for p in forecast_points if p.is_forecast)
+
+        await event_bus.publish(DomainEvent(
+            event_type=EventType.FORECAST_COMPUTED,
+            payload={"analysis_id": str(analysis.id), "periods": future_points},
+            aggregate_id=analysis.id,
+        ))
 
         ml_result = MLResult(
             model_name="Prophet+XGBoost",
@@ -223,8 +210,6 @@ class RunAnalysisUseCase:
                 f"based on {historical} historical observations."
             ),
         )
-
-        from src.domain.entities.analysis import AnalysisResult
         return AnalysisResult(
             summary=ml_result.natural_language_summary,
             key_findings=[f"Forecasted {future_points} future periods for {value_col}"],
@@ -232,25 +217,18 @@ class RunAnalysisUseCase:
             confidence_score=0.75,
         )
 
-    async def _run_automl(self, analysis: Analysis, dataset: Dataset, table_name: str) -> Any:
-        import asyncio
-        import pandas as pd
-        from src.domain.entities.analysis import AnalysisResult
-
+    async def _run_automl(self, analysis: Analysis, dataset: Dataset, table_name: str) -> AnalysisResult:
         config = analysis.configuration
         target_col = config.get("target_column") or (dataset.schema.inferred_target_column if dataset.schema else None)
         if not target_col:
-            from src.domain.entities.analysis import AnalysisResult
             return AnalysisResult(summary="AutoML requires target_column in configuration.", confidence_score=0.0)
 
         result = await self._engine.execute_query(f"SELECT * FROM {table_name} LIMIT 100000")
         df = pd.DataFrame(result.result_preview)
         pipeline = AutoMLPipeline()
-
         loop = asyncio.get_event_loop()
         ml_result = await loop.run_in_executor(None, pipeline.run, df, target_col)
 
-        from src.domain.entities.analysis import AnalysisResult
         return AnalysisResult(
             summary=ml_result.natural_language_summary,
             key_findings=[ml_result.natural_language_summary],
