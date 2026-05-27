@@ -216,10 +216,10 @@ class RunAnalysisUseCase:
     ) -> AnalysisResult:
         config = analysis.configuration
         time_col = config.get("time_column") or (
-            dataset.schema.inferred_time_column if dataset.schema else None  # type: ignore[union-attr]
+            dataset.schema.inferred_time_column if dataset.schema else None
         )
         value_col = config.get("value_column") or (
-            dataset.schema.inferred_target_column if dataset.schema else None  # type: ignore[union-attr]
+            dataset.schema.inferred_target_column if dataset.schema else None
         )
 
         if not time_col or not value_col:
@@ -271,7 +271,7 @@ class RunAnalysisUseCase:
     ) -> AnalysisResult:
         config = analysis.configuration
         target_col = config.get("target_column") or (
-            dataset.schema.inferred_target_column if dataset.schema else None  # type: ignore[union-attr]
+            dataset.schema.inferred_target_column if dataset.schema else None
         )
         if not target_col:
             return AnalysisResult(

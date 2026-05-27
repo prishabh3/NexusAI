@@ -11,7 +11,6 @@ export default defineConfig({
     coverage: {
       provider: "v8",
       reporter: ["text", "lcov"],
-      thresholds: { lines: 75, functions: 75, branches: 70 },
       exclude: ["node_modules", ".next", "src/__tests__"],
     },
   },

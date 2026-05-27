@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import logging
 import uuid
+from typing import Any
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from pydantic import BaseModel
@@ -21,7 +22,7 @@ class RunAnalysisRequest(BaseModel):
     dataset_id: uuid.UUID
     analysis_type: AnalysisType
     user_query: str | None = None
-    configuration: dict = {}
+    configuration: dict[str, Any] = {}
 
 
 class AnalysisSummaryResponse(BaseModel):
@@ -37,7 +38,7 @@ class AnalysisSummaryResponse(BaseModel):
 
 
 class AnalysisDetailResponse(AnalysisSummaryResponse):
-    agent_steps: list[dict]
+    agent_steps: list[dict[str, Any]]
     result: AnalysisResult | None
     error_message: str | None
 

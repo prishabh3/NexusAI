@@ -110,7 +110,7 @@ def create_app() -> FastAPI:
     app.include_router(ws_router)
 
     @app.get("/health", tags=["health"])
-    async def health_check() -> dict:
+    async def health_check() -> dict[str, str]:
         return {"status": "healthy", "version": "0.1.0", "env": settings.app_env}
 
     return app

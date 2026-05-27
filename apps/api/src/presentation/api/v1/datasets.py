@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import logging
 import uuid
+from typing import Any
 
 from fastapi import APIRouter, Depends, File, Form, HTTPException, Query, UploadFile, status
 from pydantic import BaseModel, Field
@@ -34,8 +35,8 @@ class DatasetSummaryResponse(BaseModel):
 
 
 class DatasetDetailResponse(DatasetSummaryResponse):
-    schema: DatasetSchema | None = None
-    metadata: dict = Field(default_factory=dict)
+    schema: DatasetSchema | None = None  # type: ignore[assignment]
+    metadata: dict[str, Any] = Field(default_factory=dict)
 
 
 def _to_summary(dataset: Dataset) -> DatasetSummaryResponse:
@@ -162,7 +163,7 @@ async def delete_dataset(
 async def list_versions(
     dataset_id: uuid.UUID,
     repo: DatasetRepository = Depends(get_dataset_repo),
-) -> list[dict]:
+) -> list[dict[str, Any]]:
     dataset = await repo.find_by_id(dataset_id)
     if dataset is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Dataset not found")
