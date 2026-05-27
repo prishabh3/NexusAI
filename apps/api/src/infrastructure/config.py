@@ -35,17 +35,12 @@ class Settings(BaseSettings):
     def settings_customise_sources(  # type: ignore[override]
         cls,
         settings_cls: type[BaseSettings],
-        init_settings: Any,
-        env_settings: Any,
-        dotenv_settings: Any,
-        secrets_settings: Any,
         **kwargs: Any,
     ) -> tuple[Any, ...]:
         return (
-            init_settings,
+            kwargs["init_settings"],
             _FlexibleEnvSource(settings_cls),
-            dotenv_settings,
-            secrets_settings,
+            kwargs["dotenv_settings"],
         )
 
     # Application
