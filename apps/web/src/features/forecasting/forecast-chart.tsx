@@ -100,13 +100,21 @@ export function ForecastChart({ points, metric }: ForecastChartProps) {
           {/* Actual line */}
           <Area
             type="monotone"
-            dataKey="forecast"
+            dataKey="value"
             stroke="hsl(var(--primary))"
             strokeWidth={1.5}
             fill="none"
-            strokeDasharray={(d: { isForecast?: boolean }) => (d?.isForecast ? "4 2" : "0")}
             dot={false}
             activeDot={{ r: 4, fill: "hsl(var(--primary))" }}
+          />
+          <Area
+            type="monotone"
+            dataKey="forecast"
+            stroke="hsl(var(--primary))"
+            strokeWidth={1.5}
+            strokeDasharray="4 2"
+            fill="none"
+            dot={false}
           />
         </AreaChart>
       </ResponsiveContainer>

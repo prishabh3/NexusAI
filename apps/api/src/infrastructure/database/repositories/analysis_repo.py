@@ -119,7 +119,6 @@ class SqlAlchemyAnalysisRepository(AnalysisRepository):
 
     @staticmethod
     def _to_entity(model: AnalysisModel) -> Analysis:
-        from datetime import datetime
 
         steps = [AgentStep(**s) for s in (model.agent_steps or [])]
         result = None

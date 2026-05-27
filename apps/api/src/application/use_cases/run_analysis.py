@@ -4,8 +4,9 @@ from __future__ import annotations
 import asyncio
 import logging
 import uuid
+from collections.abc import Callable, Coroutine
 from dataclasses import dataclass
-from typing import Any, Callable, Coroutine
+from typing import Any
 
 import pandas as pd
 
@@ -61,7 +62,9 @@ class RunAnalysisUseCase:
         if dataset is None:
             raise AnalysisNotFoundError(f"Dataset {command.dataset_id} not found")
         if dataset.status != DatasetStatus.READY:
-            raise DatasetNotReadyError(f"Dataset {command.dataset_id} is not ready (status: {dataset.status})")
+            raise DatasetNotReadyError(
+                f"Dataset {command.dataset_id} is not ready (status: {dataset.status})"
+            )
 
         table_name = dataset.metadata.get("duckdb_table", f"ds_{dataset.id.hex[:12]}")
 
@@ -145,7 +148,9 @@ class RunAnalysisUseCase:
     async def _run_anomaly_detection(self, analysis: Analysis, table_name: str) -> AnalysisResult:
         result = await self._engine.execute_query(f"SELECT * FROM {table_name} LIMIT 50000")
         if not result.result_preview:
-            return AnalysisResult(summary="No data available for anomaly detection.", confidence_score=0.0)
+            return AnalysisResult(
+                summary="No data available for anomaly detection.", confidence_score=0.0
+            )
 
         df = pd.DataFrame(result.result_preview)
         detector = AnomalyDetector()
@@ -161,9 +166,16 @@ class RunAnalysisUseCase:
         ml_result = MLResult(
             model_name="Ensemble(IsolationForest+LOF+DBSCAN)",
             task_type="anomaly_detection",
-            metrics={"anomaly_count": float(len(anomalies)), "anomaly_rate": round(len(anomalies) / len(df), 4)},
+            metrics={
+                "anomaly_count": float(len(anomalies)),
+                "anomaly_rate": round(len(anomalies) / len(df), 4),
+            },
             anomalies=anomalies,
-            natural_language_summary=f"Detected {len(anomalies)} anomalies ({len(anomalies)/len(df)*100:.1f}% of {len(df)} rows) using ensemble detection.",
+            natural_language_summary=(
+                f"Detected {len(anomalies)} anomalies "
+                f"({len(anomalies) / len(df) * 100:.1f}% of {len(df)} rows) "
+                "using ensemble detection."
+            ),
         )
         return AnalysisResult(
             summary=ml_result.natural_language_summary,
@@ -172,10 +184,16 @@ class RunAnalysisUseCase:
             confidence_score=0.82,
         )
 
-    async def _run_forecasting(self, analysis: Analysis, dataset: Dataset, table_name: str) -> AnalysisResult:
+    async def _run_forecasting(
+        self, analysis: Analysis, dataset: Dataset, table_name: str
+    ) -> AnalysisResult:
         config = analysis.configuration
-        time_col = config.get("time_column") or (dataset.schema.inferred_time_column if dataset.schema else None)
-        value_col = config.get("value_column") or (dataset.schema.inferred_target_column if dataset.schema else None)
+        time_col = config.get("time_column") or (
+            dataset.schema.inferred_time_column if dataset.schema else None  # type: ignore[union-attr]
+        )
+        value_col = config.get("value_column") or (
+            dataset.schema.inferred_target_column if dataset.schema else None  # type: ignore[union-attr]
+        )
 
         if not time_col or not value_col:
             return AnalysisResult(
@@ -189,7 +207,9 @@ class RunAnalysisUseCase:
         df = pd.DataFrame(result.result_preview)
         forecaster = ProphetForecaster()
         loop = asyncio.get_event_loop()
-        forecast_points = await loop.run_in_executor(None, forecaster.fit_predict, df, time_col, value_col)
+        forecast_points = await loop.run_in_executor(
+            None, forecaster.fit_predict, df, time_col, value_col
+        )
 
         historical = sum(1 for p in forecast_points if not p.is_forecast)
         future_points = sum(1 for p in forecast_points if p.is_forecast)
@@ -217,11 +237,17 @@ class RunAnalysisUseCase:
             confidence_score=0.75,
         )
 
-    async def _run_automl(self, analysis: Analysis, dataset: Dataset, table_name: str) -> AnalysisResult:
+    async def _run_automl(
+        self, analysis: Analysis, dataset: Dataset, table_name: str
+    ) -> AnalysisResult:
         config = analysis.configuration
-        target_col = config.get("target_column") or (dataset.schema.inferred_target_column if dataset.schema else None)
+        target_col = config.get("target_column") or (
+            dataset.schema.inferred_target_column if dataset.schema else None  # type: ignore[union-attr]
+        )
         if not target_col:
-            return AnalysisResult(summary="AutoML requires target_column in configuration.", confidence_score=0.0)
+            return AnalysisResult(
+                summary="AutoML requires target_column in configuration.", confidence_score=0.0
+            )
 
         result = await self._engine.execute_query(f"SELECT * FROM {table_name} LIMIT 100000")
         df = pd.DataFrame(result.result_preview)

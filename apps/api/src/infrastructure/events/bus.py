@@ -4,10 +4,11 @@ from __future__ import annotations
 import asyncio
 import logging
 from collections import defaultdict
+from collections.abc import Callable, Coroutine
 from dataclasses import dataclass, field
 from datetime import datetime
 from enum import StrEnum
-from typing import Any, Callable, Coroutine
+from typing import Any
 from uuid import UUID
 
 logger = logging.getLogger(__name__)
@@ -66,7 +67,7 @@ class EventBus:
     async def start(self) -> None:
         self._running = True
         logger.info("Event bus started")
-        asyncio.create_task(self._dispatch_loop())
+        asyncio.create_task(self._dispatch_loop())  # noqa: RUF006
 
     async def stop(self) -> None:
         self._running = False
@@ -79,7 +80,7 @@ class EventBus:
                 event = await asyncio.wait_for(self._queue.get(), timeout=1.0)
                 await self._dispatch(event)
                 self._queue.task_done()
-            except asyncio.TimeoutError:
+            except TimeoutError:
                 continue
             except Exception as exc:
                 logger.exception("Event dispatch error: %s", exc)
@@ -92,7 +93,7 @@ class EventBus:
         tasks = [handler(event) for handler in handlers]
         results = await asyncio.gather(*tasks, return_exceptions=True)
 
-        for handler, result in zip(handlers, results):
+        for handler, result in zip(handlers, results, strict=False):
             if isinstance(result, Exception):
                 logger.error(
                     "Handler %s failed for event %s: %s",

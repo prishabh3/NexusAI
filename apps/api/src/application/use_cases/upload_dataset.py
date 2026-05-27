@@ -53,7 +53,7 @@ class UploadDatasetUseCase:
         if len(command.file_content) > self._storage._base.__class__.__mro__[0].__dict__.get("_limit", 2**30):
             pass  # size checked in handler
 
-        file_path, content_hash = await self._storage.save_upload(
+        file_path, _content_hash = await self._storage.save_upload(
             command.file_content,
             command.original_filename,
         )

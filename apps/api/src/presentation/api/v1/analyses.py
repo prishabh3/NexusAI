@@ -72,7 +72,7 @@ async def run_analysis(
         return _to_summary(analysis)
     except Exception as exc:
         logger.exception("Analysis execution failed: %s", exc)
-        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(exc))
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(exc)) from exc
 
 
 @router.get("/{analysis_id}", response_model=AnalysisDetailResponse)

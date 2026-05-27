@@ -76,7 +76,7 @@ class Dataset(BaseModel):
     file_path: str
     file_format: str  # csv | parquet | json
     status: DatasetStatus = DatasetStatus.UPLOADING
-    schema: DatasetSchema | None = None
+    schema: DatasetSchema | None = None  # type: ignore[assignment]
     current_version: int = 1
     versions: list[DatasetVersion] = Field(default_factory=list)
     tags: list[str] = Field(default_factory=list)

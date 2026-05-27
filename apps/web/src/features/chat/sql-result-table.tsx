@@ -4,7 +4,9 @@ import { cn } from "@/lib/utils";
 
 export function SQLResultTable({ rows }: { rows: Record<string, unknown>[] }) {
   if (!rows.length) return null;
-  const columns = Object.keys(rows[0]);
+  const firstRow = rows[0];
+  if (!firstRow) return null;
+  const columns = Object.keys(firstRow);
 
   return (
     <div className="overflow-x-auto rounded border border-border">

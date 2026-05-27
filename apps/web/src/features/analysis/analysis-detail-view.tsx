@@ -123,7 +123,7 @@ export function AnalysisDetailView({ analysisId }: Props) {
             <section>
               <h3 className="mb-3 text-sm font-medium text-foreground">Forecast</h3>
               <div className="rounded-lg border border-border bg-card p-4 shadow-card">
-                <ForecastChart points={allForecastPoints} targetColumn={primaryModel?.model_name ?? "value"} />
+                <ForecastChart points={allForecastPoints} metric={primaryModel?.model_name ?? "value"} />
               </div>
             </section>
           )}

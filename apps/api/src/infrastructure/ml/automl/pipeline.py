@@ -3,12 +3,17 @@ from __future__ import annotations
 
 import logging
 import time
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from typing import Any
 
 import numpy as np
 import pandas as pd
-from sklearn.ensemble import GradientBoostingClassifier, GradientBoostingRegressor, RandomForestClassifier, RandomForestRegressor
+from sklearn.ensemble import (
+    GradientBoostingClassifier,
+    GradientBoostingRegressor,
+    RandomForestClassifier,
+    RandomForestRegressor,
+)
 from sklearn.linear_model import LogisticRegression, Ridge
 from sklearn.metrics import (
     accuracy_score,
@@ -17,9 +22,8 @@ from sklearn.metrics import (
     mean_squared_error,
     r2_score,
     roc_auc_score,
-    silhouette_score,
 )
-from sklearn.model_selection import cross_val_score, train_test_split
+from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import LabelEncoder, StandardScaler
 from xgboost import XGBClassifier, XGBRegressor
 
@@ -57,7 +61,7 @@ class AutoMLPipeline:
     def infer_problem_type(self, y: pd.Series) -> str:
         n_unique = y.nunique()
         dtype = y.dtype
-        if dtype == object or dtype.name == "category" or n_unique <= self.CLASSIFICATION_THRESHOLD:
+        if dtype.kind in ("O", "U", "S") or dtype.name == "category" or n_unique <= self.CLASSIFICATION_THRESHOLD:
             return "classification"
         return "regression"
 
@@ -210,11 +214,11 @@ class AutoMLPipeline:
     def _compute_feature_importance(model: Any, feature_names: list[str]) -> dict[str, float]:
         if hasattr(model, "feature_importances_"):
             importances = model.feature_importances_
-            pairs = sorted(zip(feature_names, importances), key=lambda x: x[1], reverse=True)
+            pairs = sorted(zip(feature_names, importances, strict=False), key=lambda x: x[1], reverse=True)
             return {name: round(float(imp), 6) for name, imp in pairs}
         if hasattr(model, "coef_"):
             coefs = np.abs(model.coef_.flatten() if model.coef_.ndim > 1 else model.coef_)
-            pairs = sorted(zip(feature_names, coefs), key=lambda x: x[1], reverse=True)
+            pairs = sorted(zip(feature_names, coefs, strict=False), key=lambda x: x[1], reverse=True)
             return {name: round(float(c), 6) for name, c in pairs}
         return {}
 
@@ -228,7 +232,7 @@ class AutoMLPipeline:
             if isinstance(shap_vals, list):
                 shap_vals = shap_vals[1]
             mean_abs = np.abs(shap_vals).mean(axis=0)
-            return {name: round(float(v), 6) for name, v in zip(feature_names, mean_abs)}
+            return {name: round(float(v), 6) for name, v in zip(feature_names, mean_abs, strict=False)}
         except Exception as exc:
             logger.warning("SHAP computation failed: %s", exc)
             return {}

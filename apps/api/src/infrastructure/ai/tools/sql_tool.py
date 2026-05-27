@@ -5,7 +5,6 @@ import logging
 import re
 from typing import Any
 
-from src.domain.entities.analysis import SQLExecution
 from src.infrastructure.duckdb.engine import DuckDBEngine
 
 logger = logging.getLogger(__name__)

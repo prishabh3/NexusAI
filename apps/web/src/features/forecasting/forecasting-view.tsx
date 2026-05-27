@@ -77,7 +77,7 @@ export function ForecastingView() {
         <div className="rounded-lg border border-border bg-card p-5 shadow-card">
           <ForecastChart
             points={forecastPoints}
-            targetColumn={primaryMl?.model_name ?? "value"}
+            metric={primaryMl?.model_name ?? "value"}
           />
         </div>
       ) : (

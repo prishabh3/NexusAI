@@ -6,8 +6,9 @@ from dataclasses import dataclass, field
 from datetime import datetime
 from typing import Any
 
-import pandas as pd
 import numpy as np
+import pandas as pd
+
 from src.domain.entities.analysis import ForecastPoint
 
 logger = logging.getLogger(__name__)
@@ -162,7 +163,7 @@ class ProphetForecaster:
                     is_forecast=False,
                 ))
 
-        for date, pred in zip(future_dates, predictions):
+        for date, pred in zip(future_dates, predictions, strict=False):
             points.append(ForecastPoint(
                 timestamp=date.to_pydatetime(),
                 value=round(float(pred), 4),

@@ -5,15 +5,15 @@ import asyncio
 import logging
 import time
 import uuid
+from collections.abc import Generator
 from concurrent.futures import ThreadPoolExecutor
 from contextlib import contextmanager
 from pathlib import Path
-from typing import Any, Generator
+from typing import Any
 
 import duckdb
 
 from src.domain.entities.analysis import SQLExecution
-from src.infrastructure.config import settings
 
 logger = logging.getLogger(__name__)
 
@@ -111,7 +111,7 @@ class DuckDBEngine:
 
         loop = asyncio.get_event_loop()
         try:
-            records, error = await loop.run_in_executor(_executor, self._execute_sync, limited_query)
+            records, _error = await loop.run_in_executor(_executor, self._execute_sync, limited_query)
             duration_ms = (time.perf_counter() - start) * 1000
 
             plan: str | None = None

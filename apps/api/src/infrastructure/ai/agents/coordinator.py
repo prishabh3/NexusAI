@@ -1,23 +1,23 @@
 """Coordinator agent — orchestrates the multi-agent analytical workflow."""
 from __future__ import annotations
 
-import asyncio
 import json
 import logging
 import time
-import uuid
-from typing import Any, AsyncGenerator
+from collections.abc import AsyncGenerator
+from typing import Any
 
 import httpx
 
-from src.domain.entities.agent_run import AgentRun, AgentRunStatus, AgentType, ToolCallRecord
 from src.domain.entities.analysis import AgentStep, Analysis, AnalysisResult, SQLExecution
 from src.infrastructure.ai.prompts.system_prompts import (
     COORDINATOR_SYSTEM_PROMPT,
-    EDA_SYSTEM_PROMPT,
-    SQL_SYSTEM_PROMPT,
 )
-from src.infrastructure.ai.tools.sql_tool import SampleDataTool, SchemaInspectTool, SQLGenerationTool
+from src.infrastructure.ai.tools.sql_tool import (
+    SampleDataTool,
+    SchemaInspectTool,
+    SQLGenerationTool,
+)
 from src.infrastructure.config import settings
 from src.infrastructure.duckdb.engine import DuckDBEngine
 
@@ -208,7 +208,7 @@ class AnalysisCoordinator:
 
                     t_tool = time.perf_counter()
                     tool_output = await self._dispatch_tool(tool_name, tool_input)
-                    tool_duration = (time.perf_counter() - t_tool) * 1000
+                    _tool_duration = (time.perf_counter() - t_tool) * 1000
 
                     messages.append({
                         "role": "tool",

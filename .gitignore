@@ -36,8 +36,8 @@ data/processed/
 *.parquet
 *.sqlite
 
-# ML artifacts
-models/
+# ML artifacts (saved model files, not source code packages)
+saved_models/
 *.joblib
 *.pkl
 *.pt

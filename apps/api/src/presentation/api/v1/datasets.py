@@ -89,7 +89,7 @@ async def upload_dataset(
             )
         )
     except ValueError as exc:
-        raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail=str(exc))
+        raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail=str(exc)) from exc
 
     dataset = await repo.find_by_id(result.dataset_id)
     if dataset is None:

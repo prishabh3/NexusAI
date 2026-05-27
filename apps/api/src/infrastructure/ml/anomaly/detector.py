@@ -3,14 +3,13 @@ from __future__ import annotations
 
 import logging
 from dataclasses import dataclass
-from typing import Any
 
 import numpy as np
 import pandas as pd
+from sklearn.cluster import DBSCAN
 from sklearn.ensemble import IsolationForest
 from sklearn.neighbors import LocalOutlierFactor
 from sklearn.preprocessing import StandardScaler
-from sklearn.cluster import DBSCAN
 
 from src.domain.entities.analysis import AnomalyRecord
 
@@ -85,7 +84,7 @@ class AnomalyDetector:
             random_state=42,
             n_jobs=-1,
         )
-        raw_scores = model.fit_predict(X)
+        model.fit(X)
         decision_scores = -model.score_samples(X)
         return (decision_scores - decision_scores.min()) / (
             decision_scores.max() - decision_scores.min() + 1e-9

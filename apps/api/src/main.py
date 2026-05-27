@@ -3,8 +3,8 @@ from __future__ import annotations
 
 import logging
 import sys
+from collections.abc import AsyncGenerator
 from contextlib import asynccontextmanager
-from typing import AsyncGenerator
 
 import structlog
 from fastapi import FastAPI, Request, status
@@ -13,7 +13,7 @@ from fastapi.middleware.gzip import GZipMiddleware
 from fastapi.responses import JSONResponse
 
 from src.infrastructure.config import settings
-from src.infrastructure.database.base import engine, Base
+from src.infrastructure.database.base import Base, engine
 from src.infrastructure.events.bus import event_bus
 from src.presentation.api.v1.analyses import router as analyses_router
 from src.presentation.api.v1.datasets import router as datasets_router

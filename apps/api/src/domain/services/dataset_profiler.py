@@ -7,7 +7,6 @@ from typing import Any
 from src.domain.entities.dataset import (
     ColumnProfile,
     ColumnType,
-    DatasetSchema,
 )
 
 
