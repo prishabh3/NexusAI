@@ -23,7 +23,12 @@ from src.infrastructure.storage.file_handler import FileHandler
 
 @lru_cache(maxsize=1)
 def get_duckdb_engine() -> DuckDBEngine:
-    return DuckDBEngine()
+    import os
+
+    from src.infrastructure.config import settings
+
+    db_path = os.path.join(settings.storage_path, "nexus.duckdb")
+    return DuckDBEngine(db_path=db_path)
 
 
 @lru_cache(maxsize=1)

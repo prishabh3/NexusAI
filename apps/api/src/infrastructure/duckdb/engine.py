@@ -1,10 +1,11 @@
-"""DuckDB analytical engine — thread-safe, connection-pooled query executor."""
+"""DuckDB analytical engine — single shared connection with threading lock."""
 
 from __future__ import annotations
 
 import asyncio
 import logging
 import re
+import threading
 import time
 import uuid
 from collections.abc import Generator
@@ -19,8 +20,6 @@ from src.domain.entities.analysis import SQLExecution
 
 logger = logging.getLogger(__name__)
 
-# DuckDB connections are not thread-safe; we use a dedicated thread pool
-# with one connection per worker to avoid contention.
 _executor = ThreadPoolExecutor(max_workers=4, thread_name_prefix="duckdb-worker")
 
 
@@ -29,34 +28,32 @@ class DuckDBQueryError(Exception):
 
 
 class DuckDBEngine:
-    """Manages DuckDB connections and query execution for analytical workloads."""
+    """Single shared DuckDB connection serialised with a threading lock."""
 
     def __init__(self, db_path: str = ":memory:") -> None:
         self._db_path = db_path
-        self._connections: dict[int, duckdb.DuckDBPyConnection] = {}
+        self._lock = threading.Lock()
+        self._conn: duckdb.DuckDBPyConnection | None = None
 
     def _get_connection(self) -> duckdb.DuckDBPyConnection:
-        import threading
-
-        tid = threading.get_ident()
-        if tid not in self._connections:
-            conn = duckdb.connect(self._db_path)
-            conn.execute("SET threads = 4")
-            conn.execute("SET memory_limit = '2GB'")
-            conn.execute("INSTALL httpfs; LOAD httpfs;")
-            conn.execute("INSTALL parquet; LOAD parquet;")
-            conn.execute("INSTALL json; LOAD json;")
-            self._connections[tid] = conn
-            logger.debug("Created DuckDB connection for thread %s", tid)
-        return self._connections[tid]
+        if self._conn is None:
+            self._conn = duckdb.connect(self._db_path)
+            self._conn.execute("SET threads = 4")
+            self._conn.execute("SET memory_limit = '2GB'")
+            self._conn.execute("INSTALL httpfs; LOAD httpfs;")
+            self._conn.execute("INSTALL parquet; LOAD parquet;")
+            self._conn.execute("INSTALL json; LOAD json;")
+            logger.debug("Opened DuckDB connection at %s", self._db_path)
+        return self._conn
 
     @contextmanager
     def _connection(self) -> Generator[duckdb.DuckDBPyConnection, None, None]:
-        conn = self._get_connection()
-        try:
-            yield conn
-        except duckdb.Error as exc:
-            raise DuckDBQueryError(str(exc)) from exc
+        with self._lock:
+            conn = self._get_connection()
+            try:
+                yield conn
+            except duckdb.Error as exc:
+                raise DuckDBQueryError(str(exc)) from exc
 
     def _register_file_sync(self, table_name: str, file_path: str, file_format: str) -> None:
         with self._connection() as conn:
@@ -178,9 +175,10 @@ class DuckDBEngine:
         return query
 
     def close(self) -> None:
-        for conn in self._connections.values():
-            try:
-                conn.close()
-            except Exception:
-                pass
-        self._connections.clear()
+        with self._lock:
+            if self._conn is not None:
+                try:
+                    self._conn.close()
+                except Exception:
+                    pass
+                self._conn = None
