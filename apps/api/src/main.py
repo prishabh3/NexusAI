@@ -61,6 +61,29 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     await event_bus.start()
     logger.info("Event bus initialized")
 
+    # Re-register all ready datasets in DuckDB after every startup/reload
+    try:
+        from src.infrastructure.database.base import AsyncSessionFactory
+        from src.infrastructure.database.repositories.dataset_repo import SqlAlchemyDatasetRepository
+        from src.presentation.dependencies import get_duckdb_engine
+
+        duckdb_engine = get_duckdb_engine()
+        async with AsyncSessionFactory() as session:
+            repo = SqlAlchemyDatasetRepository(session)
+            datasets = await repo.find_all(limit=500)
+            registered = 0
+            for ds in datasets:
+                if ds.status == "ready" and ds.file_path and ds.file_format:
+                    table_name = ds.metadata.get("duckdb_table", f"ds_{ds.id.hex[:12]}")
+                    try:
+                        await duckdb_engine.register_dataset(table_name, ds.file_path, ds.file_format)
+                        registered += 1
+                    except Exception as exc:
+                        logger.warning("Failed to register dataset at startup", dataset_id=str(ds.id), error=str(exc))
+        logger.info("DuckDB datasets registered at startup", count=registered)
+    except Exception as exc:
+        logger.warning("Dataset pre-registration skipped", error=str(exc))
+
     yield
 
     await event_bus.stop()
