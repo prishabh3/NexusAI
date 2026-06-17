@@ -165,9 +165,33 @@ class AnalysisCoordinator:
             or "Perform comprehensive exploratory data analysis on this dataset."
         )
 
+        # Pre-fetch schema so the model has context from the start
+        schema_tool = self._tools.get("inspect_schema")
+        schema_context = ""
+        if schema_tool:
+            try:
+                schema_data = await schema_tool.run()
+                cols = schema_data.get("schema", [])
+                sample = schema_data.get("sample_rows", [])
+                col_info = ", ".join(
+                    f"{c.get('column_name','?')} ({c.get('column_type','?')})"
+                    for c in cols[:20]
+                ) if cols else "unknown"
+                sample_str = json.dumps(sample[:3], default=str) if sample else "[]"
+                schema_context = (
+                    f"\n\nTable '{self._table_name}' has {len(cols)} columns: {col_info}\n"
+                    f"Sample rows: {sample_str}\n\n"
+                    f"Now call execute_sql to answer the user's question with real data."
+                )
+            except Exception as exc:
+                logger.warning("Schema pre-fetch failed: %s", exc)
+
         messages: list[dict[str, Any]] = [
             {"role": "system", "content": system_msg},
-            {"role": "user", "content": user_query},
+            {
+                "role": "user",
+                "content": f"{user_query}{schema_context}",
+            },
         ]
 
         sql_executions: list[SQLExecution] = []
@@ -191,6 +215,10 @@ class AnalysisCoordinator:
             message = response.get("message", {})
             content = message.get("content", "")
             tool_calls = message.get("tool_calls", [])
+            logger.info(
+                "Iteration %d: content_len=%d tool_calls=%d done_reason=%s",
+                iterations, len(content), len(tool_calls), response.get("done_reason")
+            )
 
             messages.append({"role": "assistant", "content": content or ""})
             duration_ms = (time.perf_counter() - t_start) * 1000
