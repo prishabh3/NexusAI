@@ -58,13 +58,30 @@ export function AgentChat({ datasetId }: { datasetId: string }) {
     socket.onclose = () => {
       setWsConnected(false);
       setWs(null);
-      setIsRunning(false);
+      // Only clear running state if the server closed unexpectedly (no completed/error event)
+      useAnalysisStore.getState().setIsRunning(false);
+      // Show an error if we were mid-analysis when the connection dropped
+      const { liveSteps: steps } = useAnalysisStore.getState();
+      if (steps.length > 0) {
+        setMessages((prev) => [
+          ...prev,
+          {
+            id: `error-${Date.now()}`,
+            role: "system",
+            content: "Connection lost. The analysis may be incomplete.",
+            timestamp: new Date(),
+          },
+        ]);
+        useAnalysisStore.getState().clearLiveSteps();
+      }
     };
     socket.onmessage = (event) => {
       const msg = JSON.parse(event.data);
       if (msg.event === "step") {
         addLiveStep(msg.data as AgentStep);
       } else if (msg.event === "completed") {
+        // Read steps directly from store at event time to avoid stale closure
+        const currentSteps = useAnalysisStore.getState().liveSteps;
         setIsRunning(false);
         setMessages((prev) => [
           ...prev,
@@ -72,7 +89,7 @@ export function AgentChat({ datasetId }: { datasetId: string }) {
             id: `assistant-${Date.now()}`,
             role: "assistant",
             content: msg.data.summary ?? "Analysis complete.",
-            steps: [...liveSteps],
+            steps: [...currentSteps],
             timestamp: new Date(),
           },
         ]);
@@ -109,9 +126,25 @@ export function AgentChat({ datasetId }: { datasetId: string }) {
     if (!socket || socket.readyState !== WebSocket.OPEN) {
       socket = connect();
       setWs(socket);
-      await new Promise<void>((resolve) => {
-        socket!.addEventListener("open", () => resolve(), { once: true });
-      });
+      try {
+        await new Promise<void>((resolve, reject) => {
+          socket!.addEventListener("open", () => resolve(), { once: true });
+          socket!.addEventListener("error", () => reject(new Error("WebSocket connection failed")), { once: true });
+        });
+      } catch {
+        setIsRunning(false);
+        setWs(null);
+        setMessages((prev) => [
+          ...prev,
+          {
+            id: `error-${Date.now()}`,
+            role: "system",
+            content: "Could not connect to the analysis server. Please try again.",
+            timestamp: new Date(),
+          },
+        ]);
+        return;
+      }
     }
     socket.send(JSON.stringify({ query: trimmed, type: "full_pipeline" }));
   };

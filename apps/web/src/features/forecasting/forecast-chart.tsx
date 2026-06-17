@@ -23,7 +23,7 @@ export function ForecastChart({ points, metric }: ForecastChartProps) {
   const chartData = points.map((p) => ({
     date: p.timestamp,
     value: p.is_forecast ? null : p.value,
-    forecast: p.is_forecast ? p.value : p.value,
+    forecast: p.is_forecast ? p.value : null,
     lower: p.lower_bound,
     upper: p.upper_bound,
     isForecast: p.is_forecast,

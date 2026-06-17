@@ -62,7 +62,7 @@ class DatasetProfiler:
                         datetime.strptime(str(v), pattern)
                         parsed += 1
                     except ValueError:
-                        break
+                        continue
                 if parsed >= min(10, len(sample[:20])):
                     return ColumnType.DATETIME
             return ColumnType.STRING

@@ -34,12 +34,12 @@ export function AnomalyTimeline({ anomalies, totalRows }: AnomalyTimelineProps) 
       <div>
         <div className="mb-1 flex items-center justify-between text-xs text-muted-foreground">
           <span>Anomaly density</span>
-          <span>{((anomalies.length / totalRows) * 100).toFixed(2)}% of {totalRows.toLocaleString()} rows</span>
+          <span>{totalRows > 0 ? ((anomalies.length / totalRows) * 100).toFixed(2) : "0.00"}% of {totalRows.toLocaleString()} rows</span>
         </div>
         <div className="h-2 overflow-hidden rounded-full bg-muted">
           <div
             className="h-full rounded-full bg-red-500/70"
-            style={{ width: `${Math.min(100, (anomalies.length / totalRows) * 100 * 20)}%` }}
+            style={{ width: `${totalRows > 0 ? Math.min(100, (anomalies.length / totalRows) * 100 * 20) : 0}%` }}
           />
         </div>
       </div>

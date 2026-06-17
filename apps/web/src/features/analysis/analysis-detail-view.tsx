@@ -3,6 +3,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { AlertCircle, CheckCircle2, Clock, Loader2 } from "lucide-react";
 import { analysesApi } from "@/lib/api/analyses";
+import { datasetsApi } from "@/lib/api/datasets";
 import { AgentStepTrace } from "@/features/chat/agent-step-trace";
 import { AnomalyTimeline } from "@/features/anomaly/anomaly-timeline";
 import { ForecastChart } from "@/features/forecasting/forecast-chart";
@@ -26,6 +27,13 @@ export function AnalysisDetailView({ analysisId }: Props) {
     queryKey: ["analyses", analysisId],
     queryFn: () => analysesApi.getById(analysisId),
     staleTime: 30_000,
+  });
+
+  const { data: dataset } = useQuery({
+    queryKey: ["datasets", analysis?.dataset_id],
+    queryFn: () => datasetsApi.get(analysis!.dataset_id),
+    enabled: !!analysis?.dataset_id,
+    staleTime: 60_000,
   });
 
   if (isLoading) return null;
@@ -87,7 +95,7 @@ export function AnalysisDetailView({ analysisId }: Props) {
       </div>
 
       {/* Agent trace */}
-      {analysis.agent_steps.length > 0 && (
+      {(analysis.agent_steps?.length ?? 0) > 0 && (
         <div>
           <p className="mb-2 text-[11px] font-semibold uppercase tracking-widest text-muted-foreground">
             Agent Trace
@@ -153,7 +161,7 @@ export function AnalysisDetailView({ analysisId }: Props) {
               <div className="rounded-xl border border-border bg-card p-4 shadow-card">
                 <AnomalyTimeline
                   anomalies={allAnomalies}
-                  totalRows={allAnomalies.length > 0 ? Math.max(...allAnomalies.map(a => a.row_index)) + 1 : 1}
+                  totalRows={dataset?.row_count ?? (allAnomalies.length > 0 ? Math.max(...allAnomalies.map(a => a.row_index)) + 1 : 1)}
                 />
               </div>
             </div>

@@ -160,7 +160,7 @@ class AutoMLPipeline:
 
         X_df = X_df.fillna(X_df.median(numeric_only=True))
         y = df[target].copy()
-        if y.dtype == object:
+        if pd.api.types.is_object_dtype(y) or pd.api.types.is_string_dtype(y):
             le = LabelEncoder()
             y = pd.Series(le.fit_transform(y.astype(str)), name=target)
 

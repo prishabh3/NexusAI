@@ -288,5 +288,7 @@ class RunAnalysisUseCase:
             summary=ml_result.natural_language_summary,
             key_findings=[ml_result.natural_language_summary],
             ml_results=[ml_result],
-            confidence_score=min(0.95, max(ml_result.metrics.values(), default=0.0)),
+            confidence_score=min(
+                0.95, ml_result.metrics.get("r2", ml_result.metrics.get("accuracy", 0.0))
+            ),
         )

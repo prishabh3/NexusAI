@@ -85,6 +85,8 @@ class SqlAlchemyAnalysisRepository(AnalysisRepository):
         model.result = analysis.result.model_dump(mode="json") if analysis.result else None
         model.error_message = analysis.error_message
         model.duration_seconds = analysis.duration_seconds
+        model.started_at = analysis.started_at
+        model.completed_at = analysis.completed_at
         model.prompt_tokens_used = analysis.prompt_tokens_used
         model.completion_tokens_used = analysis.completion_tokens_used
         await self._session.flush()
@@ -153,6 +155,8 @@ class SqlAlchemyAnalysisRepository(AnalysisRepository):
             result=result,
             error_message=model.error_message,
             duration_seconds=model.duration_seconds,
+            started_at=model.started_at,
+            completed_at=model.completed_at,
             prompt_tokens_used=model.prompt_tokens_used or 0,
             completion_tokens_used=model.completion_tokens_used or 0,
             created_at=model.created_at,

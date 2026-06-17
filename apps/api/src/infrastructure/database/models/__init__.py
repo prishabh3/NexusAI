@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import uuid
+from datetime import datetime
 from typing import Any
 
 from pgvector.sqlalchemy import Vector
@@ -8,6 +9,7 @@ from sqlalchemy import (
     JSON,
     BigInteger,
     Boolean,
+    DateTime,
     Float,
     ForeignKey,
     Integer,
@@ -89,6 +91,8 @@ class AnalysisModel(Base):
     result: Mapped[dict[str, Any] | None] = mapped_column(JSON, nullable=True)
     error_message: Mapped[str | None] = mapped_column(Text, nullable=True)
     duration_seconds: Mapped[float | None] = mapped_column(Float, nullable=True)
+    started_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    completed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     prompt_tokens_used: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
     completion_tokens_used: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
 
