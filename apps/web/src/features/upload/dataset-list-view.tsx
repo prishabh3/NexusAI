@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Database, MoreHorizontal, Trash2 } from "lucide-react";
 import { datasetsApi } from "@/lib/api/datasets";
 import { cn, formatBytes, formatNumber, formatRelativeTime } from "@/lib/utils";
@@ -24,9 +24,15 @@ const STATUS_BADGE: Record<Dataset["status"], { label: string; className: string
 };
 
 export function DatasetListView() {
+  const queryClient = useQueryClient();
   const { data: datasets = [], isLoading } = useQuery({
     queryKey: ["datasets"],
     queryFn: () => datasetsApi.list({ limit: 50 }),
+  });
+
+  const deleteMutation = useMutation({
+    mutationFn: (id: string) => datasetsApi.delete(id),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["datasets"] }),
   });
 
   if (isLoading) {
@@ -127,9 +133,16 @@ export function DatasetListView() {
                     <DropdownMenuItem asChild>
                       <Link href={`/chat?dataset=${dataset.id}`}>Run query</Link>
                     </DropdownMenuItem>
-                    <DropdownMenuItem className="text-destructive focus:text-destructive">
+                    <DropdownMenuItem
+                      className="text-destructive focus:text-destructive"
+                      onClick={() => {
+                        if (confirm(`Delete "${dataset.name}"? This cannot be undone.`)) {
+                          deleteMutation.mutate(dataset.id);
+                        }
+                      }}
+                    >
                       <Trash2 className="mr-2 h-4 w-4" />
-                      Delete
+                      {deleteMutation.isPending ? "Deleting…" : "Delete"}
                     </DropdownMenuItem>
                   </DropdownMenuContent>
                 </DropdownMenu>
