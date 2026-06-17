@@ -38,10 +38,10 @@ You upload a CSV, Parquet, or JSON file. NexusAI sends it to a local language mo
 | | SQLAlchemy 2.0 async | ORM; `AsyncSession` per request via `Depends` |
 | | Alembic | Schema migrations |
 | | structlog | Structured JSON logging |
-| **AI / Agents** | Ollama | Local LLM inference (`qwen2.5:3b` default) |
+| **AI / Agents** | Ollama | Local LLM inference (`qwen2.5:14b` default) |
 | | httpx | Async HTTP client that calls Ollama's `/api/chat` |
 | | LangChain / LangGraph | Listed in `pyproject.toml` but agent loop is custom |
-| **Analytics** | DuckDB 1.1 | In-process OLAP SQL engine; one connection per thread |
+| **Analytics** | DuckDB 1.1 | In-process OLAP SQL engine; single shared connection with threading lock |
 | | pandas 2.2 | Data loading and profiling |
 | | pyarrow | Parquet read/write |
 | **ML** | scikit-learn 1.5 | IsolationForest, LOF, DBSCAN, RandomForest, GBM |
@@ -76,7 +76,7 @@ Browser
                     │ WS   /ws/analysis/{dataset_id}
                     ▼
 ┌────────────────────────────────────────────────┐
-│  FastAPI  (port 8000)                          │
+│  FastAPI  (port 8001)                          │
 │                                                │
 │  Presentation ──► Application ──► Domain       │
 │  (routes/WS)      (use cases)     (entities)   │
@@ -152,9 +152,11 @@ For `anomaly_detection`, `forecasting`, `classification`, `regression`, and `clu
 |---|---|---|
 | Docker | 24 | `docker --version` |
 | Docker Compose | 2.20 | `docker compose version` |
-| Ollama | latest | not needed for Docker setup |
+| Ollama | latest | [ollama.com](https://ollama.com) — runs natively on your machine |
 
-> **No Python or Node needed** to run with Docker Compose — the containers handle everything.
+> **No Python or Node needed** — the containers handle everything except Ollama, which runs natively for best performance (GPU acceleration on Apple Silicon and NVIDIA).
+
+> **Why Ollama runs outside Docker:** Running Ollama natively lets it use your GPU (Metal on Apple Silicon, CUDA on NVIDIA), giving 10–50× faster inference than running it in a container where GPU access is limited.
 
 ### 1. Clone and configure
 
@@ -164,7 +166,7 @@ cd NexusAI
 cp .env.example .env
 ```
 
-Open `.env` and change the one required value:
+Open `.env` and set the one required value:
 
 ```bash
 # Generate a random 32-char key:
@@ -174,13 +176,30 @@ openssl rand -hex 32
 
 Everything else in `.env` works as-is for local development.
 
-### 2. Start all services
+### 2. Start Ollama (natively)
+
+Ollama runs on your machine directly so it can use your GPU:
+
+```bash
+# Start Ollama bound to all interfaces so Docker containers can reach it
+OLLAMA_HOST=0.0.0.0:11434 ollama serve
+```
+
+Keep this terminal open. Then pull the default model in another terminal:
+
+```bash
+ollama pull qwen2.5:14b        # ~9 GB — best quality, fast on Apple Silicon / NVIDIA
+# or for lower-spec machines:
+ollama pull qwen2.5:3b         # ~2 GB — lighter, still useful
+```
+
+### 3. Start all services
 
 ```bash
 docker compose up -d
 ```
 
-This starts six containers. Wait about 30 seconds for PostgreSQL health checks to pass:
+This starts five containers. Wait about 30 seconds for PostgreSQL health checks to pass:
 
 ```bash
 docker compose ps   # all should show "healthy" or "running"
@@ -188,34 +207,23 @@ docker compose ps   # all should show "healthy" or "running"
 
 | Container | Port | What it is |
 |---|---|---|
-| `nexusai-api` | 8000 | FastAPI backend |
+| `nexusai-api` | 8001 | FastAPI backend |
 | `nexusai-web` | 3000 | Next.js frontend |
 | `nexusai-postgres` | 5432 | PostgreSQL 16 + pgvector |
 | `nexusai-redis` | 6379 | Redis 7 |
-| `nexusai-ollama` | 11434 | Ollama LLM server |
 | `nexusai-worker` | — | Celery background worker |
 
-### 3. Pull a language model
-
-The API cannot run analyses until Ollama has at least one model downloaded:
+### 4. Run database migrations (first time only)
 
 ```bash
-# Default — fast on CPU, needs ~3 GB RAM
-docker exec nexusai-ollama ollama pull qwen2.5:3b
-
-# Higher quality — needs ~8 GB VRAM or ~16 GB RAM
-docker exec nexusai-ollama ollama pull qwen2.5:7b
+docker exec nexusai-api alembic upgrade head
 ```
 
-The model is stored in the `ollama-models` Docker volume, so you only need to pull it once.
-
-> **Apple Silicon tip:** For 50–100× faster inference, run Ollama natively on your Mac (so it uses Metal GPU) instead of inside Docker. Install Ollama from [ollama.com](https://ollama.com), then in `docker-compose.yml` change the `api` service's `OLLAMA_BASE_URL` to `http://host.docker.internal:11434` and remove the `ollama` service from the compose file. A full analysis drops from ~15 minutes to ~30 seconds.
-
-### 4. Open the app
+### 5. Open the app
 
 [http://localhost:3000](http://localhost:3000)
 
-API documentation (Swagger UI): [http://localhost:8000/api/docs](http://localhost:8000/api/docs)
+API documentation (Swagger UI): [http://localhost:8001/api/docs](http://localhost:8001/api/docs)
 
 ---
 
@@ -300,7 +308,7 @@ To trigger them via API:
 
 ```bash
 # Anomaly detection
-curl -X POST http://localhost:8000/api/v1/analyses \
+curl -X POST http://localhost:8001/api/v1/analyses \
   -H "Content-Type: application/json" \
   -d '{
     "dataset_id": "<your-dataset-uuid>",
@@ -308,7 +316,7 @@ curl -X POST http://localhost:8000/api/v1/analyses \
   }'
 
 # Forecasting — requires specifying which columns to use
-curl -X POST http://localhost:8000/api/v1/analyses \
+curl -X POST http://localhost:8001/api/v1/analyses \
   -H "Content-Type: application/json" \
   -d '{
     "dataset_id": "<your-dataset-uuid>",
@@ -320,7 +328,7 @@ curl -X POST http://localhost:8000/api/v1/analyses \
   }'
 
 # AutoML classification
-curl -X POST http://localhost:8000/api/v1/analyses \
+curl -X POST http://localhost:8001/api/v1/analyses \
   -H "Content-Type: application/json" \
   -d '{
     "dataset_id": "<your-dataset-uuid>",
@@ -349,8 +357,8 @@ Click **Settings** to check live connectivity (API, Ollama, database), change th
 
 ## API Reference
 
-Base URL: `http://localhost:8000/api/v1`
-WebSocket: `ws://localhost:8000`
+Base URL: `http://localhost:8001/api/v1`
+WebSocket: `ws://localhost:8001`
 
 No authentication is required in development. Set `APP_SECRET_KEY` in production for session signing.
 
@@ -368,7 +376,7 @@ No authentication is required in development. Set `APP_SECRET_KEY` in production
 **Upload example:**
 
 ```bash
-curl -X POST http://localhost:8000/api/v1/datasets \
+curl -X POST http://localhost:8001/api/v1/datasets \
   -F "file=@sales.csv" \
   -F "name=Q4 Sales" \
   -F "description=Regional sales data for Q4 2024" \
@@ -538,6 +546,8 @@ One row per analysis run.
 | `result` | jsonb | `AnalysisResult` — summary, key_findings, ml_results |
 | `error_message` | text | Populated on failure |
 | `duration_seconds` | float | `completed_at - started_at` |
+| `started_at` | timestamptz | Set when analysis transitions to `running` |
+| `completed_at` | timestamptz | Set on `completed` or `failed` |
 | `prompt_tokens_used` | int | |
 | `completion_tokens_used` | int | |
 
@@ -601,13 +611,15 @@ Domain entities (`Dataset`, `Analysis`, `Insight`) are plain Pydantic models. Th
 
 ### DuckDB thread-safety
 
-DuckDB connections are not safe to share across threads. The `DuckDBEngine` keeps a `dict[thread_id → connection]` and creates a new connection on first use in each thread. A `ThreadPoolExecutor(max_workers=4)` handles all blocking DuckDB calls. Async callers use `asyncio.run_in_executor` to submit work to that pool without blocking FastAPI's event loop.
+`DuckDBEngine` uses a **single shared connection** protected by a `threading.Lock`. All blocking DuckDB operations run inside a `ThreadPoolExecutor` via `asyncio.run_in_executor`, and the lock ensures only one thread accesses the connection at a time. The database is stored as a persistent file at `$STORAGE_PATH/nexus.duckdb` so that views (registered datasets) survive API restarts. At startup, the `lifespan` function queries PostgreSQL for all `ready` datasets and re-registers their DuckDB views, so analyses work immediately even after a cold restart.
 
-Every SELECT query automatically gets `LIMIT 10000` appended by `_apply_row_limit` if no LIMIT clause is present, preventing accidental full-table scans that would exhaust memory.
+Every SELECT query automatically gets `LIMIT 10000` appended by `_apply_row_limit` if no LIMIT clause is present, preventing accidental full-table scans that would exhaust memory. The limit check uses a word-boundary regex (`\bLIMIT\b`) rather than a substring search, so table names containing the word "limit" are not misidentified.
 
 ### Agentic loop with a hard iteration cap
 
 The coordinator loop runs up to `AGENT_MAX_ITERATIONS` (default 4) turns. This prevents infinite loops when the model keeps calling tools without reaching a conclusion. If the loop exhausts all iterations on tool calls without generating text, a final forced synthesis call is made with no tools available, so the model must write a report based on the query results already in its context window.
+
+Before entering the loop, the coordinator pre-fetches the dataset schema (column names, types, sample rows) and injects it into the initial user message. This ensures smaller models (qwen2.5:3b, 7b) have the full table structure upfront and reliably call `execute_sql` without needing a separate `inspect_schema` round-trip.
 
 Temperature is set to 0.1 for all SQL generation calls. Lower temperature means the model picks the most likely next token, which produces more deterministic SQL rather than creative but incorrect queries.
 
@@ -724,7 +736,7 @@ NexusAI/
 │   │   │   │   │   ├── agents/coordinator.py    # OllamaClient + AnalysisCoordinator loop
 │   │   │   │   │   ├── tools/sql_tool.py        # execute_sql, inspect_schema, sample_data tools
 │   │   │   │   │   └── prompts/system_prompts.py
-│   │   │   │   ├── duckdb/engine.py             # Thread-per-connection DuckDB wrapper
+│   │   │   │   ├── duckdb/engine.py             # Single-connection DuckDB wrapper with threading lock
 │   │   │   │   ├── ml/
 │   │   │   │   │   ├── anomaly/detector.py      # IsolationForest + LOF + DBSCAN ensemble
 │   │   │   │   │   ├── forecasting/prophet_forecaster.py  # Prophet + XGBoost fallback
@@ -838,28 +850,31 @@ docker compose logs api --tail=50
 ### Ollama returns 404 or connection refused
 
 ```bash
-# Check Ollama is running
+# Check Ollama is running and reachable
 curl http://localhost:11434/api/tags
 
-# If nothing is returned, the container may not have started
-docker compose ps nexusai-ollama
-
 # Check which models are available
-docker exec nexusai-ollama ollama list
+ollama list
 ```
 
-If the model list is empty, pull a model (see Quick Start step 3). The API logs will show `Model 'qwen2.5:3b' not found` if the requested model was never pulled.
+Make sure Ollama was started with `OLLAMA_HOST=0.0.0.0:11434 ollama serve`. The default `ollama serve` binds to `127.0.0.1` only, which Docker containers cannot reach. If you started it without the environment variable, stop it and restart:
+
+```bash
+# Stop the current instance (Ctrl+C), then:
+OLLAMA_HOST=0.0.0.0:11434 ollama serve
+```
+
+If the model list is empty, pull a model (see Quick Start step 2).
 
 ### DuckDB "Table not found" error in analysis
 
-DuckDB views are stored in-memory per process. If the API container was restarted after datasets were uploaded, the views no longer exist. Re-register them by calling:
+This should not happen with the current setup — DuckDB views are stored in a persistent file (`$STORAGE_PATH/nexus.duckdb`) and all datasets are re-registered at API startup. If you do see this error, restart the API container to trigger re-registration:
 
 ```bash
-# Trigger a re-upload of the file, OR:
-# Manually re-register via the upload endpoint using the same file
+docker compose restart api
 ```
 
-A permanent fix for production is to use a persistent DuckDB database file (`DUCKDB_PATH=/app/data/nexus.duckdb`) and re-register views at startup by querying `datasets` where `status = 'ready'`. This is not yet implemented.
+If the file was deleted or corrupted, re-upload your dataset to re-register it.
 
 ### pgvector extension missing
 
